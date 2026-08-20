@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deriv Signal Lab PRO V3</title>
+<style>
+:root{--bg:#070b11;--card:#121923;--card2:#0b1118;--line:#293545;--txt:#f5f7fb;--muted:#94a0b3;--g:#16d09a;--y:#ffc857;--r:#ff6677}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.w{max-width:980px;margin:auto;padding:14px 14px 45px}h1{font-size:25px;margin:5px 0}.muted{color:var(--muted);font-size:11px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin:11px 0}.row{display:flex;gap:8px;flex-wrap:wrap}.g{flex:1;min-width:150px}label{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}select,button{width:100%;padding:11px;border:1px solid #384456;background:#0b1118;color:#fff;border-radius:10px;font-size:13px}button{background:var(--g);color:#06110d;border:0;font-weight:900}.secondary{background:#293342;color:#fff}.err{background:#2b151a;color:#ffadb5;border:1px solid #6a2b36;padding:9px;border-radius:10px;font-size:11px;margin-top:8px}.hero{text-align:center}.hero small{color:var(--muted);font-size:10px}.decision{font-size:15px;font-weight:900;margin-top:5px}.go{color:var(--g)}.wait{color:var(--y)}.big{font-size:72px;font-weight:950;line-height:1;margin:8px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.k{background:var(--card2);border-radius:11px;padding:10px;text-align:center}.k b{display:block;font-size:17px}.k span{font-size:9px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.d{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:8px 4px;text-align:center}.best{border-color:var(--g)}.dn{font-size:20px;font-weight:900}.bar{height:5px;background:#303a49;margin:5px 0}.fill{height:100%;background:var(--g);border-radius:5px}.tiny{font-size:9px;color:var(--muted)}.panel{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.box{background:var(--card2);border-radius:10px;padding:10px}.mono{font:11px monospace;word-break:break-all;line-height:1.8}.note{font-size:10px;color:var(--muted);line-height:1.5}.tabs{display:flex;gap:6px;overflow:auto}.tab{white-space:nowrap;padding:9px 12px;border-radius:10px;background:#0b1118;border:1px solid var(--line);font-size:11px}.tab.on{background:#193d35;border-color:var(--g)}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.panel{grid-template-columns:1fr}}
+</style></head>
+<body><div class=w>
+<h1>🧠 Deriv Signal Lab PRO V3</h1><div class=muted>Live symbols • multi-window model • walk-forward testing • conservative entry filter</div>
+
+<div class=card>
+<div class=tabs id=tabs></div>
+<div class=row style="margin-top:9px"><div class=g><label>INDEX</label><select id=s><option>Discovering symbols…</option></select></div><div class=g><label>HISTORY</label><select id=h><option>200</option><option selected>500</option><option>1000</option></select></div><div class=g><label>CONTRACT</label><select id=c><option value=match>Matches</option><option value=diff>Differs</option><option value=over>Over</option><option value=under>Under</option><option value=even>Even</option><option value=odd>Odd</option></select></div></div>
+<div class=row style="margin-top:8px"><div class=g><label>DURATION</label><select id=d><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></div><div class=g><label>MINIMUM SCORE</label><select id=m><option>55</option><option selected>60</option><option>65</option><option>70</option></select></div></div>
+<div class=row style="margin-top:8px"><div class=g><button id=go>CONNECT LIVE</button></div><div class=g><button id=stop class=secondary>STOP</button></div></div>
+<div id=st class=muted style="margin-top:8px">Discovering current Deriv symbols…</div><div id=er class=err style="display:none"></div>
+</div>
+
+<div class="card hero"><small>ENGINE DECISION</small><div id=dec class="decision wait">WAITING FOR DATA</div><div id=bd class=big>—</div><div id=why class=muted>Enough evidence is required before a signal is shown.</div></div>
+<div class=card><div class=kpis><div class=k><b id=sc>—</b><span>SCORE / 100</span></div><div class=k><b id=alt>—</b><span>ALTERNATIVE</span></div><div class=k><b id=nt>0</b><span>TICKS</span></div><div class=k><b id=edge>—</b><span>EDGE</span></div></div></div>
+
+<div class=card><b>Digit model</b><div id=dg class=grid style="margin-top:9px"></div></div>
+<div class=card><b>Adaptive ensemble</b><div id=ensemble class=panel style="margin-top:8px"></div></div>
+<div class=card><b>Evidence</b><div id=factors class=panel style="margin-top:8px"></div></div>
+<div class=card><b>Entry monitor</b><div class=panel style="margin-top:8px"><div class=box><span class=tiny>BOT DURATION</span><br><b id=entry>WAIT</b></div><div class=box><span class=tiny>LAST TICK</span><br><b id=last>—</b></div></div><div class=note style="margin-top:7px">Duration is in ticks. Two ticks is not guaranteed to equal two seconds.</div></div>
+
+<div class=card><b>Signal history</b><div id=histlog class=mono style="margin-top:7px">No live signals yet.</div></div>
+<div class=card><b>Walk-forward backtest</b><div class=note style="margin:5px 0">Each historical decision is evaluated using only earlier observations.</div><div class=kpis><div class=k><b id=wr>—</b><span>HIT RATE</span></div><div class=k><b id=tr>—</b><span>TRIALS</span></div><div class=k><b id=avg>—</b><span>AVG SCORE</span></div><div class=k><b id=q>—</b><span>QUALITY</span></div></div></div>
+<div class=card><b>Recent digits</b><div id=recent class=mono style="margin-top:7px">—</div></div>
+<div class=card note><b>Reality check:</b> This is an analysis/backtesting tool, not a guaranteed predictor. Synthetic indices use Deriv's random-number system, so historical patterns can be coincidental. It never places trades or accesses your account.</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let ws=null,ticks=[],pip=2,lastEpoch=0,all=[],family="All",signalLog=[],modelStats={freq:1,recency:1,gap:1,ensemble:1};
+const families=["All","Volatility","Crash/Boom","Jump","Step","Range Break","Drift"];
+function tabs(){ $("tabs").innerHTML=families.map(x=>`<div class="tab ${x==family?'on':''}" data-x="${x}">${x}</div>`).join("");document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{family=t.dataset.x;tabs();filter()})}tabs();
+function status(x){$("st").textContent="● "+x}function showErr(x){$("er").style.display="block";$("er").textContent=x}function hideErr(){$("er").style.display="none"}
+function filter(){let z=all.filter(x=>family==="All"||x.name.toLowerCase().includes(family.toLowerCase())||(family==="Crash/Boom"&&/crash|boom/i.test(x.name)));if(!z.length)z=all;$("s").innerHTML=z.map(x=>`<option value="${x.symbol}">${x.name}</option>`).join("")}
+function discover(){
+ let w=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
+ w.onopen=()=>w.send(JSON.stringify({active_symbols:"full",product_type:"basic",req_id:91}));
+ w.onmessage=e=>{let x;try{x=JSON.parse(e.data)}catch(_){return}if(x.active_symbols){all=x.active_symbols.filter(z=>z.symbol&&z.display_name).map(z=>({symbol:z.symbol,name:z.display_name}));filter();status("Live symbol catalogue loaded • "+all.length+" instruments");w.close()}};
+ w.onerror=()=>{all=[["1HZ10V","Volatility 10 (1s)"],["1HZ25V","Volatility 25 (1s)"],["1HZ50V","Volatility 50 (1s)"],["1HZ75V","Volatility 75 (1s)"],["1HZ100V","Volatility 100 (1s)"],["1HZ150V","Volatility 150 (1s)"],["1HZ200V","Volatility 200 (1s)"],["1HZ250V","Volatility 250 (1s)"]].map(x=>({symbol:x[0],name:x[1]}));filter();status("Using fallback Volatility list")};
+}
+function digit(q){return Number(Number(q).toFixed(pip).slice(-1))}
+function model(v,n=v.length){
+ let z=v.slice(0,n),N=z.length;if(N<80)return null;
+ let o=Array.from({length:10},(_,d)=>({d,score:0,f50:0,f100:0,f200:0,f500:0,r:0,g:0,trend:0}));
+ [[50,.14],[100,.26],[200,.30],[500,.30]].forEach(([w,wt])=>{
+   w=Math.min(w,N);let c=Array(10).fill(0);z.slice(-w).forEach(d=>c[d]++);
+   c.forEach((q,d)=>{let k=w==50?"f50":w==100?"f100":w==200?"f200":"f500";o[d][k]=q/w;o[d].score+=wt*q/w});
+ });
+ let recent=z.slice(-40),prev=z.slice(-80,-40),rc=Array(10).fill(0),pc=Array(10).fill(0),last=Array(10).fill(-1);
+ recent.forEach(d=>rc[d]++);prev.forEach(d=>pc[d]++);z.forEach((d,i)=>last[d]=i);
+ o.forEach(x=>{
+   x.r=rc[x.d]/recent.length;
+   let old=prev.length?pc[x.d]/prev.length:0;
+   x.trend=x.r-old;
+   x.g=last[x.d]<0?N:N-1-last[x.d];
+   let gap=Math.min(x.g/60,1);
+   // Ensemble: frequency + recent change + gap, with a stability penalty for extreme short-window noise.
+   let freq=.14*x.f50+.26*x.f100+.30*x.f200+.30*x.f500;
+   let rec=.55*x.r+.45*Math.max(0,x.trend+.05);
+   let gapScore=.5*gap+.5*Math.min(x.g/25,1);
+   let stability=1-Math.min(Math.abs(x.f50-x.f500)*1.8,.18);
+   x.score=(.62*freq+.28*rec+.10*gapScore)*stability;
+ });
+ o.sort((a,b)=>b.score-a.score);
+ let top=o[0],sec=o[1],sep=top.score-sec.score;
+ return {N,o,t:top,s:sec,sep,agreement:Math.min(top.f50,top.f100,top.f200,top.f500)};
+}
+function back(v){
+ let start=Math.max(180,Math.floor(v.length*.55)),tr=0,w=0,sum=0,thr=+$("m").value/100;
+ for(let i=start;i<v.length-1;i++){
+   let x=model(v,i);if(!x||x.t.score<thr)continue;
+   tr++;sum+=x.t.score;if(v[i+1]===x.t.d)w++;
+ }
+ let rate=tr?100*w/tr:0;
+ $("wr").textContent=tr?rate.toFixed(1)+"%":"—";$("tr").textContent=tr;
+ $("avg").textContent=tr?(100*sum/tr).toFixed(1):"—";
+ $("q").textContent=!tr?"NONE":rate>=55?"GOOD":rate>=50?"FAIR":"WEAK";
+ return {tr,rate,avg:tr?100*sum/tr:0};
+}
+function updateAdaptive(bt){
+ if(!bt.tr)return;
+ // Conservative adaptation: use measured validation quality to slightly alter the
+ // displayed confidence, never turning a weak backtest into a "strong" signal.
+ modelStats.ensemble=Math.max(.85,Math.min(1.10,bt.rate/50));
+}
+function analyze(){
+ let x=model(ticks);if(!x)return;
+ let bt=back(ticks);updateAdaptive(bt);
+ let t=x.t,s=x.s,edge=x.sep*100;
+ let raw=100*t.score, validation=Math.max(.85,Math.min(1.08,modelStats.ensemble));
+ let score=Math.min(99,raw*validation+Math.max(0,edge)*18);
+ let agreement=x.agreement,threshold=+$("m").value;
+ // Extra validation gate: don't signal merely because a digit is frequent.
+ let validationOK=bt.tr<8 || bt.rate>=50;
+ let run=score>=threshold&&agreement>=.07&&(t.score/s.score)>=1.045&&validationOK;
+ let ct=$("c").value,label={match:"RUN MATCH",diff:"RUN DIFFER",over:"RUN OVER",under:"RUN UNDER",even:"RUN EVEN",odd:"RUN ODD"}[ct];
+ $("dec").textContent=run?label:"WAIT / NO TRADE";$("dec").className="decision "+(run?"go":"wait");
+ $("bd").textContent=t.d;$("sc").textContent=score.toFixed(1);$("alt").textContent=s.d;$("nt").textContent=x.N;$("edge").textContent=edge.toFixed(1)+"%";
+ $("why").textContent=run?"Ensemble + rolling windows + validation passed the conservative filter.":"The ensemble did not pass every gate; waiting is intentional.";
+ let mx=t.score;
+ $("dg").innerHTML=x.o.map((d,i)=>`<div class="d ${i?'':'best'}"><div class=dn>${d.d}</div><div class=bar><div class=fill style="width:${Math.max(3,100*d.score/mx)}%"></div></div><span class=tiny>50 ${(100*d.f50).toFixed(1)}%<br>100 ${(100*d.f100).toFixed(1)}%<br>200 ${(100*d.f200).toFixed(1)}%<br>500 ${(100*d.f500).toFixed(1)}%</span></div>`).join("");
+ $("ensemble").innerHTML=
+ `<div class=box><span class=tiny>FREQUENCY</span><br><b>62%</b><br><span class=tiny>long-window weight</span></div>
+  <div class=box><span class=tiny>RECENCY</span><br><b>28%</b><br><span class=tiny>recent change</span></div>
+  <div class=box><span class=tiny>GAP</span><br><b>10%</b><br><span class=tiny>gap contribution</span></div>
+  <div class=box><span class=tiny>VALIDATION</span><br><b>${bt.tr?bt.rate.toFixed(1)+"%":"—"}</b><br><span class=tiny>walk-forward hit rate</span></div>`;
+ let streak=1;for(let i=ticks.length-2;i>=0&&ticks[i]===ticks.at(-1);i--)streak++;
+ $("factors").innerHTML=
+ `<div class=box><span class=tiny>WINDOW AGREEMENT</span><br><b>${(agreement*100).toFixed(1)}%</b></div>
+  <div class=box><span class=tiny>SEPARATION</span><br><b>${edge.toFixed(1)}%</b></div>
+  <div class=box><span class=tiny>RECENT TREND</span><br><b>${(t.trend*100>=0?"+":"")+(t.trend*100).toFixed(1)}%</b></div>
+  <div class=box><span class=tiny>LAST STREAK</span><br><b>${streak} × ${ticks.at(-1)}</b></div>`;
+ $("entry").textContent=run?$("d").value+" TICK"+($("d").value==1?"":"S"):"WAIT";
+ $("last").textContent=lastEpoch?new Date(lastEpoch*1000).toLocaleTimeString():"—";
+ $("recent").textContent=ticks.slice(-120).join(" ");
+ if(run){
+   let now=new Date().toLocaleTimeString(), msg=`${now} • ${label} ${t.d} • ${score.toFixed(1)}/100`;
+   if(signalLog[0]!==msg)signalLog.unshift(msg);signalLog=signalLog.slice(0,12);
+ }
+ $("histlog").textContent=signalLog.length?signalLog.join("\\n"):"No live signals yet.";
+}
+function connect(){
+ if(ws)try{ws.close()}catch(e){}ticks=[];hideErr();$("dec").textContent="CONNECTING";let sym=$("s").value,n=+$("h").value;if(!sym||sym==="undefined"){showErr("Choose an index first.");return;}
+ try{ws=new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public")}catch(e){showErr(e.message);return}
+ ws.onopen=()=>{status("Connected • loading "+n+" ticks…");ws.send(JSON.stringify({ticks_history:sym,end:"latest",count:n,style:"ticks",subscribe:1,req_id:1}))};
+ ws.onmessage=e=>{let x;try{x=JSON.parse(e.data)}catch(_){return}if(x.error){showErr((x.error.code||"Deriv error")+": "+x.error.message);return}
+ if(x.msg_type==="history"){if(typeof x.pip_size==="number")pip=x.pip_size;ticks=(x.history.prices||[]).map(digit);analyze();status("LIVE • "+ticks.length+" historical ticks loaded")}
+ if(x.msg_type==="tick"){if(typeof x.tick.pip_size==="number")pip=x.tick.pip_size;ticks.push(digit(x.tick.quote));if(ticks.length>1000)ticks=ticks.slice(-1000);lastEpoch=x.tick.epoch;analyze();status("LIVE • "+x.tick.quote+" • digit "+ticks.at(-1))}};
+ ws.onerror=()=>showErr("Live connection failed. Try again or change network.");ws.onclose=()=>{if($("er").style.display==="none")status("Disconnected.")};
+}
+$("go").onclick=connect;$("stop").onclick=()=>{if(ws)ws.close();status("Stopped.")};$("h").onchange=connect;$("s").onchange=connect;["c","d","m"].forEach(id=>$(id).onchange=analyze);discover();
+</script></body></html>
