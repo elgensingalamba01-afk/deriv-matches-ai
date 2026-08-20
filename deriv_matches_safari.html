@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Deriv Matches AI — Safari</title>
+<style>
+body{margin:0;background:#0b0f15;color:#f5f7fb;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}.wrap{max-width:760px;margin:auto;padding:16px}.card{background:#171c25;border:1px solid #2d3544;border-radius:18px;padding:15px;margin:12px 0}.muted{color:#9ca6b7;font-size:12px}.row{display:flex;gap:9px;flex-wrap:wrap}.grow{flex:1;min-width:160px}select,button,input{width:100%;padding:12px;border-radius:11px;border:1px solid #374154;background:#0e131b;color:#fff;font-size:14px}button{background:#16c997;color:#06110d;border:0;font-weight:800}.secondary{background:#2a3240;color:#fff}.hero{text-align:center}.big{font-size:68px;font-weight:900;line-height:1}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.d{background:#0e131b;border:1px solid #30394a;border-radius:11px;padding:9px 5px;text-align:center}.best{border-color:#16c997}.bar{height:5px;background:#30394a;margin:6px 0}.fill{height:100%;background:#16c997;border-radius:4px}.tiny{font-size:10px;color:#9ca6b7}.mono{font:12px ui-monospace,monospace;word-break:break-all;line-height:1.8}.ok{color:#16c997}.err{background:#2b161b;border:1px solid #6e2d37;color:#ff9da7;padding:10px;border-radius:10px;font-size:12px;line-height:1.5}.note{font-size:11px;line-height:1.5;color:#9ca6b7}
+</style></head><body><div class=wrap>
+<h1>🎯 Deriv Matches AI Analyzer</h1><div class=muted>Safari version • live public tick data • no Deriv login</div>
+<div class=card><div class=row><div class=grow><div class=muted>INDEX</div><select id=s><option value=1HZ100V>Volatility 100 (1s)</option><option value=1HZ75V>Volatility 75 (1s)</option><option value=1HZ50V>Volatility 50 (1s)</option><option value=1HZ25V>Volatility 25 (1s)</option><option value=1HZ10V>Volatility 10 (1s)</option></select></div><div class=grow><div class=muted>HISTORY</div><select id=c><option>50</option><option selected>100</option><option>200</option><option>500</option></select></div></div><div class=row style="margin-top:9px"><div class=grow><button id=go>CONNECT LIVE</button></div><div class=grow><button id=stop class=secondary>STOP</button></div></div><div id=st class=muted style="margin-top:9px">Ready.</div><div id=er class=err style="display:none;margin-top:9px"></div></div>
+<div class="card hero"><div class=muted>BEST MATCH CANDIDATE</div><div id=best class=big>—</div><div id=msg class=muted>Waiting for ticks…</div></div>
+<div class=card><b>Digit ranking</b><div id=g class=grid style="margin-top:10px"></div></div>
+<div class=card><b>Recent digits</b><div id=r class=mono style="margin-top:8px">—</div></div>
+<div class=card><b>Connection test</b><div class=muted>Tap this if Connect Live does not work.</div><button id=test class=secondary>TEST DERIV CONNECTION</button><div id=tr class=muted style="margin-top:8px"></div></div>
+<div class=card><b>Manual fallback</b><div class=muted>Paste last digits here if Safari/network blocks WebSockets.</div><input id=m placeholder="e.g. 317629043827..."><button id=ma class=secondary style="margin-top:7px">ANALYZE DIGITS</button></div>
+<div class=card note><b>Note:</b> This tool analyzes actual tick history and ranks digits. It does not know the next digit with certainty and does not place trades.</div>
+</div>
+<script>
+let ws=null,a=[],pip=2,$=id=>document.getElementById(id);
+function msg(x){$('st').innerHTML='<span class=ok>● '+x+'</span>'}
+function error(x){$('er').style.display='block';$('er').textContent=x}
+function digit(q){return Number(Number(q).toFixed(pip).slice(-1))}
+function analyse(v){
+ a=v.filter(Number.isFinite);$('r').textContent=a.slice(-100).join(' ');
+ if(!a.length){$('best').textContent='—';return}
+ let n=a.length,f=Array(10).fill(0),rr=Array(10).fill(0),last=Array(10).fill(-1),rn=Math.min(25,n);
+ a.forEach((d,i)=>{f[d]++;last[d]=i;if(i>=n-rn)rr[d]++});
+ let q=Array.from({length:10},(_,d)=>{let gap=last[d]<0?n:n-1-last[d];return{d,score:.6*f[d]/n+.32*rr[d]/rn+.08*Math.min(gap/35,1),f:f[d]/n,r:rr[d]/rn}}).sort((x,y)=>y.score-x.score);
+ $('best').textContent=q[0].d;let ratio=q[0].score/q[1].score;
+ $('msg').textContent=(n<50?'LOW':ratio>1.1?'STRONGER':'MODERATE')+' • '+n+' ticks • backup '+q[1].d+' • last '+a.at(-1);
+ let mx=q[0].score;$('g').innerHTML=q.map((x,i)=>'<div class="d '+(i?'':'best')+'"><b>'+x.d+'</b><div class=bar><div class=fill style="width:'+Math.max(3,100*x.score/mx)+'%"></div></div><span class=tiny>F '+(100*x.f).toFixed(1)+'%<br>R '+(100*x.r).toFixed(1)+'%</span></div>').join('');
+}
+function connect(){
+ if(ws)try{ws.close()}catch(e){} a=[];analyse([]);$('er').style.display='none';msg('Connecting to Deriv…');
+ try{ws=new WebSocket('wss://api.derivws.com/trading/v1/options/ws/public')}catch(e){error('Safari could not create the WebSocket: '+e.message);return}
+ ws.onopen=()=>{msg('Connected — requesting tick history…');let s=$('s').value,n=+$('c').value;ws.send(JSON.stringify({ticks_history:s,end:'latest',count:n,style:'ticks',req_id:1}));ws.send(JSON.stringify({ticks:s,subscribe:1,req_id:2}))};
+ ws.onmessage=e=>{let x;try{x=JSON.parse(e.data)}catch(_){return}
+  if(x.error){error((x.error.code||'Deriv error')+': '+x.error.message);return}
+  if(x.msg_type==='history'&&x.history){if(typeof x.pip_size==='number')pip=x.pip_size;a=(x.history.prices||[]).map(digit);analyse(a);msg('LIVE • '+a.length+' ticks loaded')}
+  if(x.msg_type==='tick'&&x.tick){if(typeof x.tick.pip_size==='number')pip=x.tick.pip_size;a.push(digit(x.tick.quote));if(a.length>500)a=a.slice(-500);analyse(a);msg('LIVE • '+x.tick.quote)}
+ };
+ ws.onerror=()=>error('Safari/network blocked the live WebSocket. Use the manual fallback or try Safari with Wi‑Fi/mobile data switched.');
+ ws.onclose=()=>{if($('er').style.display==='none')$('st').textContent='Disconnected.'}
+}
+$('go').onclick=connect;$('stop').onclick=()=>{if(ws)ws.close();$('st').textContent='Stopped.'};
+$('test').onclick=()=>{let t=new WebSocket('wss://api.derivws.com/trading/v1/options/ws/public');$('tr').textContent='Testing…';t.onopen=()=>{$('tr').innerHTML='<span class=ok>Connection works.</span>';t.close()};t.onerror=()=>{$('tr').textContent='Connection blocked/failed.'}};
+$('ma').onclick=()=>{let t=$('m').value.replace(/[^0-9]/g,'');if(t.length<10){error('Enter at least 10 digits.');return}analyse([...t].map(Number));$('er').style.display='none';msg('Manual digits analyzed.')};
+</script></body></html>
