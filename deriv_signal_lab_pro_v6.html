@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deriv Signal Lab PRO V6</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070b11;color:#f7f9fc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:980px;margin:auto;padding:14px}.title{font-size:27px;font-weight:900;margin:5px 0}.sub{color:#9aa7b8;font-size:12px;margin-bottom:12px}
+.card{background:#111923;border:1px solid #283548;border-radius:18px;padding:14px;margin:10px 0;box-shadow:0 8px 30px #0003}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:5px}.tab{white-space:nowrap;padding:10px 12px;border:1px solid #344256;border-radius:11px;background:#0b1118;font-size:12px}.tab.on{border-color:#16d09a;color:#16d09a}
+input,select,button{width:100%;background:#0a1017;color:#fff;border:1px solid #38475c;border-radius:12px;padding:13px;margin:5px 0;font-size:15px}
+button{background:#16d09a;color:#04110c;border:0;font-weight:900}.stop{background:#273240;color:#fff}.row{display:flex;gap:8px}.row>*{flex:1}
+.status{color:#9aa7b8;font-size:12px;margin-top:5px}.err{color:#ff8e9d;font-size:12px}
+.decision{text-align:center;font-size:21px;font-weight:1000;padding:13px}.run{color:#16d09a}.wait{color:#ffc857}
+.signal{font-size:68px;text-align:center;font-weight:1000;line-height:1}.signal small{display:block;font-size:12px;color:#9aa7b8;font-weight:500;margin-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.k{background:#0a1017;border-radius:11px;padding:11px;text-align:center}.k b{display:block;font-size:18px}.k span{color:#8f9caf;font-size:9px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.dig{background:#0a1017;border-radius:10px;padding:9px;text-align:center}.dig.hot{outline:2px solid #16d09a}.bar{height:5px;background:#293444;border-radius:9px;margin:6px 0}.fill{height:100%;background:#16d09a;border-radius:9px}
+.recent{font-family:ui-monospace,monospace;line-height:1.8;word-break:break-all;color:#c9d2df}.tiny{font-size:10px;color:#7f8c9f}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}.row{gap:6px}.title{font-size:24px}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="title">🧠 Deriv Signal Lab PRO V6</div>
+<div class="sub">Live tick engine • multi-window digit model • streak/transition filters • index catalogue</div>
+
+<div class="card">
+<div id="tabs" class="tabs"></div>
+<input id="search" placeholder="Search indexes…">
+<select id="symbol"></select>
+<div class="row">
+<select id="window"><option value="200">200 ticks</option><option value="500" selected>500 ticks</option><option value="1000">1000 ticks</option></select>
+<select id="contract"><option value="match">Matches</option><option value="diff">Differs</option><option value="over">Over</option><option value="under">Under</option><option value="even">Even</option><option value="odd">Odd</option></select>
+</div>
+<div class="row">
+<select id="duration"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+<select id="threshold"><option>55</option><option selected>60</option><option>65</option><option>70</option><option>75</option></select>
+</div>
+<div class="row"><button id="connect">CONNECT LIVE</button><button id="stop" class="stop">STOP</button></div>
+<div id="status" class="status">Ready.</div><div id="error" class="err"></div>
+</div>
+
+<div class="card">
+<div class="decision wait" id="decision">WAITING FOR DATA</div>
+<div class="signal" id="signal">—<small id="entry">No signal</small></div>
+<div class="sub" id="reason">The engine will wait for enough live ticks before producing a signal.</div>
+</div>
+
+<div class="card"><div class="kpis">
+<div class="k"><b id="score">—</b><span>CONFIDENCE</span></div>
+<div class="k"><b id="edge">—</b><span>EDGE</span></div>
+<div class="k"><b id="ticks">0</b><span>TICKS</span></div>
+<div class="k"><b id="rate">—</b><span>TICK RATE</span></div>
+</div></div>
+
+<div class="card"><b>Digit probability model</b><div id="digits" class="grid" style="margin-top:9px"></div></div>
+
+<div class="card"><b>Market diagnostics</b><div class="kpis" style="margin-top:8px">
+<div class="k"><b id="mode">—</b><span>DOMINANT</span></div>
+<div class="k"><b id="streak">—</b><span>STREAK</span></div>
+<div class="k"><b id="entropy">—</b><span>ENTROPY</span></div>
+<div class="k"><b id="quality">—</b><span>QUALITY</span></div>
+</div></div>
+
+<div class="card"><b>Recent digits</b><div id="recent" class="recent" style="margin-top:8px">—</div></div>
+<div class="card tiny">Important: this is a statistical signal engine, not a guaranteed predictor. Synthetic indices are generated markets; a high score is not certainty. Test on demo before risking money. The tool never places trades automatically.</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let ws=null, ticks=[], instruments=[], family="All", lastEpoch=0, lastDigit=null, streakN=0, tickTimes=[];
+
+const fallback=[
+["R_10","Volatility 10 Index","Volatility"],["R_25","Volatility 25 Index","Volatility"],["R_50","Volatility 50 Index","Volatility"],["R_75","Volatility 75 Index","Volatility"],["R_100","Volatility 100 Index","Volatility"],["R_250","Volatility 250 Index","Volatility"],
+["1HZ10V","Volatility 10 (1s) Index","Volatility"],["1HZ15V","Volatility 15 (1s) Index","Volatility"],["1HZ25V","Volatility 25 (1s) Index","Volatility"],["1HZ30V","Volatility 30 (1s) Index","Volatility"],["1HZ50V","Volatility 50 (1s) Index","Volatility"],["1HZ75V","Volatility 75 (1s) Index","Volatility"],["1HZ90V","Volatility 90 (1s) Index","Volatility"],["1HZ100V","Volatility 100 (1s) Index","Volatility"],["1HZ150V","Volatility 150 (1s) Index","Volatility"],["1HZ250V","Volatility 250 (1s) Index","Volatility"],
+["BOOM50","Boom 50 Index","Crash/Boom"],["BOOM100","Boom 100 Index","Crash/Boom"],["BOOM150","Boom 150 Index","Crash/Boom"],["BOOM200","Boom 200 Index","Crash/Boom"],["BOOM300","Boom 300 Index","Crash/Boom"],["BOOM500","Boom 500 Index","Crash/Boom"],["BOOM600","Boom 600 Index","Crash/Boom"],["BOOM900","Boom 900 Index","Crash/Boom"],["BOOM1000","Boom 1000 Index","Crash/Boom"],
+["CRASH50","Crash 50 Index","Crash/Boom"],["CRASH100","Crash 100 Index","Crash/Boom"],["CRASH150","Crash 150 Index","Crash/Boom"],["CRASH200","Crash 200 Index","Crash/Boom"],["CRASH300","Crash 300 Index","Crash/Boom"],["CRASH500","Crash 500 Index","Crash/Boom"],["CRASH600","Crash 600 Index","Crash/Boom"],["CRASH900","Crash 900 Index","Crash/Boom"],["CRASH1000","Crash 1000 Index","Crash/Boom"],
+["JD10","Jump 10 Index","Jump"],["JD25","Jump 25 Index","Jump"],["JD50","Jump 50 Index","Jump"],["JD75","Jump 75 Index","Jump"],["JD100","Jump 100 Index","Jump"],
+["stpRNG","Step Index","Step"],["stpRNG200","Step Index 200","Step"],["stpRNG300","Step Index 300","Step"],["stpRNG400","Step Index 400","Step"],["stpRNG500","Step Index 500","Step"],
+["RDB100","Range Break 100 Index","Range Break"],["RDB200","Range Break 200 Index","Range Break"],
+["DSI10","Drift Switch Index 10","Drift"],["DSI20","Drift Switch Index 20","Drift"],["DSI30","Drift Switch Index 30","Drift"],
+["VOVB400","Vol over Boom 400","Hybrid"],["VOVB550","Vol over Boom 550","Hybrid"],["VOVB750","Vol over Boom 750","Hybrid"],["VOVC400","Vol over Crash 400","Hybrid"],["VOVC550","Vol over Crash 550","Hybrid"],["VOVC750","Vol over Crash 750","Hybrid"],
+["DEX600UP","DEX 600 UP Index","DEX"],["DEX600DOWN","DEX 600 DOWN Index","DEX"],["DEX900UP","DEX 900 UP Index","DEX"],["DEX900DOWN","DEX 900 DOWN Index","DEX"],["DEX1500UP","DEX 1500 UP Index","DEX"],["DEX1500DOWN","DEX 1500 DOWN Index","DEX"],
+["HFV10","High Frequency Vol 10 Index","High Frequency"],["HFV25","High Frequency Vol 25 Index","High Frequency"],["HFV50","High Frequency Vol 50 Index","High Frequency"],["HFV75","High Frequency Vol 75 Index","High Frequency"],["HFV100","High Frequency Vol 100 Index","High Frequency"]
+].map(x=>({symbol:x[0],name:x[1],family:x[2]}));
+
+const families=["All","Volatility","Crash/Boom","Jump","Step","Range Break","Drift","Hybrid","DEX","High Frequency"];
+function renderTabs(){ $("tabs").innerHTML=families.map(f=>`<div class="tab ${f===family?"on":""}" data-f="${f}">${f}</div>`).join("");document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{family=t.dataset.f;renderTabs();populate()})}
+function populate(){
+ let q=$("search").value.toLowerCase();
+ let arr=instruments.filter(x=>(family==="All"||x.family===family)&&(!q||x.name.toLowerCase().includes(q)||x.symbol.toLowerCase().includes(q)));
+ $("symbol").innerHTML=arr.length?arr.map(x=>`<option value="${x.symbol}">${x.name} [${x.symbol}]</option>`).join(""):`<option value="">No indexes found</option>`;
+}
+function setFallback(){instruments=fallback.slice();populate();$("status").textContent=`Built-in catalogue loaded • ${instruments.length} indexes available`;}
+
+/* Always show the catalogue first. The live API can then add/refresh symbols.
+   This prevents the exact "0 instruments" problem shown in the screenshot. */
+setFallback();renderTabs();
+
+function discover(){
+ const timer=setTimeout(()=>{if(instruments.length<5)setFallback()},3500);
+ let w;
+ try{w=new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089")}catch(e){return}
+ w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",product_type:"basic",req_id:901}));
+ w.onmessage=e=>{
+   let x;try{x=JSON.parse(e.data)}catch(_){return}
+   if(x.active_symbols&&Array.isArray(x.active_symbols)){
+     clearTimeout(timer);
+     const live=x.active_symbols.filter(a=>a.symbol&&a.display_name).map(a=>({symbol:a.symbol,name:a.display_name,family:guessFamily(a.display_name)}));
+     const map=new Map(instruments.map(a=>[a.symbol,a]));live.forEach(a=>map.set(a.symbol,a));instruments=[...map.values()];populate();
+     $("status").textContent=`Live catalogue merged • ${instruments.length} indexes`;
+     w.close();
+   }
+ };
+ w.onerror=()=>{clearTimeout(timer);setFallback()};
+}
+function guessFamily(n){let s=n.toLowerCase();if(s.includes("volatility"))return"Volatility";if(s.includes("crash")||s.includes("boom"))return"Crash/Boom";if(s.includes("jump"))return"Jump";if(s.includes("step"))return"Step";if(s.includes("range break"))return"Range Break";if(s.includes("drift"))return"Drift";if(s.includes("dex"))return"DEX";if(s.includes("hybrid")||s.includes("over boom")||s.includes("over crash"))return"Hybrid";if(s.includes("frequency vol"))return"High Frequency";return"All"}
+
+function digit(price){let s=String(Number(price).toFixed(2));return Number(s.replace(/\D/g,"").slice(-1))}
+function entropy(counts,n){let h=0;for(let c of counts){if(c){let p=c/n;h-=p*Math.log2(p)}}return h}
+function analyse(){
+ const n=ticks.length;if(n<80){$("decision").textContent="COLLECTING TICKS";$("decision").className="decision wait";return}
+ const windows=[50,100,200,Math.min(500,n)];
+ const weights=[.12,.20,.28,.40];
+ let p=Array(10).fill(.1);
+ windows.forEach((w,i)=>{
+   const c=Array(10).fill(0), a=ticks.slice(-w);a.forEach(d=>c[d]++);
+   c.forEach((v,d)=>p[d]+=weights[i]*(v+1)/(w+10));
+ });
+ const sum=p.reduce((a,b)=>a+b,0);p=p.map(x=>x/sum);
+ // Recent-vs-long imbalance
+ const recent=ticks.slice(-30), long=ticks.slice(-Math.min(300,n));
+ const rc=Array(10).fill(0),lc=Array(10).fill(0);recent.forEach(d=>rc[d]++);long.forEach(d=>lc[d]++);
+ p=p.map((v,d)=>Math.max(.001,v*(1+0.35*((rc[d]/30)-(lc[d]/long.length)))));
+ const sm=p.reduce((a,b)=>a+b,0);p=p.map(x=>x/sm);
+ let order=p.map((v,d)=>({d,p:v})).sort((a,b)=>b.p-a.p),top=order[0],second=order[1];
+ let ent=entropy(Array.from({length:10},(_,d)=>Math.round(p[d]*10000)),10000);
+ let recentLast=ticks.at(-1), same=0;for(let i=ticks.length-1;i>=0&&ticks[i]===recentLast;i++)same++;
+ const separation=(top.p-second.p)*100;
+ const raw=50+(top.p-.1)*250+separation*1.6+(ent<3.18?3:0);
+ const confidence=Math.max(1,Math.min(99,raw));
+ let threshold=+$("threshold").value;
+ let stable=confidence>=threshold && separation>=1.0;
+ let contract=$("contract").value;
+ let signal="";
+ if(contract==="match")signal=`MATCH ${top.d}`;
+ else if(contract==="diff")signal=`DIFFERS ${top.d}`;
+ else if(contract==="even")signal="EVEN";
+ else if(contract==="odd")signal="ODD";
+ else if(contract==="over")signal=`OVER ${Math.min(8,top.d)}`;
+ else signal=`UNDER ${Math.max(1,top.d)}`;
+ $("decision").textContent=stable?"SIGNAL READY":"WAIT / NO TRADE";
+ $("decision").className="decision "+(stable?"run":"wait");
+ $("signal").textContent=stable?signal:"—";
+ $("entry").textContent=stable?`Suggested duration: ${$("duration").value} tick(s) • wait for the next clean entry window`:"No trade until threshold + separation agree";
+ $("score").textContent=confidence.toFixed(1)+"%";$("edge").textContent=separation.toFixed(1)+"%";$("ticks").textContent=n;
+ let rate="—";if(tickTimes.length>2){let dt=(tickTimes.at(-1)-tickTimes[Math.max(0,tickTimes.length-6)])/Math.max(1,Math.min(5,tickTimes.length-1));rate=(dt>0?(Math.min(99,5/dt)).toFixed(1):"—")+" /s"}$("rate").textContent=rate;
+ $("mode").textContent=top.d;$("streak").textContent=recentLast+" × "+same;$("entropy").textContent=ent.toFixed(2);$("quality").textContent=stable?"A":"FILTER";
+ $("reason").textContent=stable?`Multi-window model agrees on ${top.d}; separation ${separation.toFixed(1)} percentage points. This is a statistical setup, not certainty.`:`Top digit ${top.d} is only ${(top.p*100).toFixed(1)}% weighted probability; the edge is too weak for the selected threshold.`;
+ const mx=top.p;
+ $("digits").innerHTML=order.sort((a,b)=>a.d-b.d).map(x=>`<div class="dig ${x.d===top.d?"hot":""}"><b>${x.d}</b><div class="bar"><div class="fill" style="width:${Math.max(3,100*x.p/mx)}%"></div></div><span class="tiny">${(x.p*100).toFixed(1)}%</span></div>`).join("");
+ $("recent").textContent=ticks.slice(-160).join(" ");
+}
+function connect(){
+ if(ws)try{ws.close()}catch(_){}
+ ticks=[];tickTimes=[];lastDigit=null;streakN=0;
+ const sym=$("symbol").value;if(!sym){$("error").textContent="Choose an index.";return}
+ $("error").textContent="";$("status").textContent="Connecting to Deriv…";
+ try{ws=new WebSocket("wss://ws.derivws.com/websockets/v3?app_id=1089")}catch(e){$("error").textContent="WebSocket unavailable in this browser.";return}
+ ws.onopen=()=>{ $("status").textContent="Connected • loading recent ticks…";ws.send(JSON.stringify({ticks_history:sym,end:"latest",count:+$("window").value,style:"ticks",subscribe:1}))};
+ ws.onmessage=e=>{
+   let x;try{x=JSON.parse(e.data)}catch(_){return}
+   if(x.error){$("error").textContent=x.error.message;return}
+   if(x.history&&x.history.prices){ticks=x.history.prices.map(digit);tickTimes=(x.history.times||[]).map(Number);analyse()}
+   if(x.tick){let d=digit(x.tick.quote);ticks.push(d);tickTimes.push(Number(x.tick.epoch));if(ticks.length>1200){ticks.shift();tickTimes.shift()}analyse();$("status").textContent=`LIVE • ${$("symbol").selectedOptions[0]?.text||sym} • last digit ${d}`}
+ };
+ ws.onerror=()=>{$("error").textContent="Connection failed. Try CONNECT LIVE again."};
+ ws.onclose=()=>{if($("status").textContent.startsWith("LIVE"))$("status").textContent+=" • stopped"};
+}
+$("connect").onclick=connect;$("stop").onclick=()=>{if(ws)try{ws.close()}catch(_){ }$("status").textContent="Stopped"};
+$("search").oninput=populate;
+discover();
+</script>
+</body></html>
