@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deriv Matches AI Pro X</title>
+<style>
+:root{--bg:#070b12;--card:#101824;--card2:#0b121c;--line:#223044;--text:#f4f7fb;--muted:#93a0b3;--green:#16d6a0;--yellow:#ffc857;--red:#ff6577;--blue:#59a8ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#060a10,#0b111a 55%,#070b12);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:980px;margin:auto;padding:18px 14px 50px}.hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-size:31px;font-weight:850;line-height:1.05}.sub{color:var(--muted);margin-top:10px;line-height:1.45}.pill{border:1px solid #235c52;color:var(--green);padding:12px 14px;border-radius:18px;background:#0b201c;text-align:center;min-width:120px;font-weight:800}
+.card{background:rgba(16,24,36,.94);border:1px solid var(--line);border-radius:22px;padding:16px;margin-top:16px;box-shadow:0 14px 35px rgba(0,0,0,.18)}
+.grid{display:grid;grid-template-columns:1.35fr .8fr .8fr;gap:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 7px 4px}.field select,.field input{width:100%;background:#08111c;color:var(--text);border:1px solid #2a3b52;border-radius:14px;padding:14px;font-size:16px;outline:none}.field select:focus,.field input:focus{border-color:var(--green)}
+button{border:0;border-radius:14px;padding:14px 16px;font-weight:850;font-size:15px;cursor:pointer}.primary{background:var(--green);color:#03120e}.secondary{background:#263447;color:#fff}.danger{background:#3a1d25;color:#ffb3bd}.row{display:flex;gap:10px;flex-wrap:wrap}.row button{flex:1;min-width:150px}.status{margin-top:10px;color:var(--muted)}.ok{color:var(--green)}.bad{color:var(--red)}
+.decision{text-align:center;padding:20px;border-radius:18px;background:#09121d;border:1px solid #26364b}.decision h2{font-size:34px;margin:4px 0 8px}.decision .target{font-size:22px;font-weight:800}.decision .entry{color:var(--yellow);font-size:18px;font-weight:850;margin-top:12px}.decision.wait h2{color:var(--yellow)}.decision.match h2{color:var(--green)}.decision.diff h2{color:var(--blue)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#09121d;border-radius:15px;padding:14px;text-align:center}.stat b{font-size:23px;display:block}.stat span{color:var(--muted);font-size:11px;text-transform:uppercase}
+.bars{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;align-items:end;height:150px;margin-top:12px}.barbox{text-align:center;height:100%;display:flex;flex-direction:column;justify-content:end}.bar{background:linear-gradient(180deg,#16d6a0,#167c67);border-radius:7px 7px 3px 3px;min-height:3px}.barbox span{font-size:11px;color:var(--muted);margin-top:5px}.barbox b{font-size:12px;margin-bottom:4px}
+.digits{font-size:24px;letter-spacing:6px;word-break:break-all;line-height:1.7;background:#08111c;padding:12px;border-radius:14px;color:#dbe6f5}.hot{color:var(--green);font-weight:900}.cold{color:var(--blue);font-weight:900}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid #1d2a3b}th{color:var(--muted)}
+.small{font-size:12px;color:var(--muted);line-height:1.45}.warn{color:#ffc857}.footer{margin-top:18px;color:#748196;font-size:11px;line-height:1.5}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.hero{display:block}.pill{margin-top:12px}.title{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <div class="title">🎯 Deriv Matches AI Pro X</div>
+      <div class="sub">Live tick engine • adaptive digit probabilities • transition model • streak filter • walk-forward validation • live entry timer</div>
+    </div>
+    <div class="pill" id="engine">OFFLINE</div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="field"><label>Index / market</label><select id="symbol"></select></div>
+      <div class="field"><label>History</label><select id="count"><option>200</option><option selected>500</option><option>1000</option></select></div>
+      <div class="field"><label>Contract</label><select id="contract"><option value="match">Matches</option><option value="diff">Differs</option></select></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field"><label>Duration (ticks)</label><input id="duration" type="number" min="1" max="10" value="2"></div>
+      <div class="field"><label>Minimum confidence %</label><input id="minConf" type="number" min="10" max="30" step=".1" value="13.0"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="connect">CONNECT LIVE</button>
+      <button class="secondary" id="stop">STOP</button>
+      <button class="secondary" id="refresh">REFRESH INDEXES</button>
+    </div>
+    <div class="status" id="status">Loading available Deriv markets…</div>
+  </div>
+
+  <div class="card">
+    <div class="decision wait" id="decision">
+      <div class="small">ENGINE DECISION</div>
+      <h2>WAITING</h2>
+      <div class="target" id="target">Collecting verified ticks…</div>
+      <div class="entry" id="entry">No entry yet</div>
+    </div>
+    <div class="stats" style="margin-top:12px">
+      <div class="stat"><b id="confidence">—</b><span>Confidence</span></div>
+      <div class="stat"><b id="edge">—</b><span>Model edge</span></div>
+      <div class="stat"><b id="ticks">0</b><span>Ticks</span></div>
+      <div class="stat"><b id="rate">—</b><span>Tick rate</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0">Digit probability model</h3>
+    <div class="small" id="modelText" style="margin-top:6px">Frequency + recency + transition + streak + walk-forward validation.</div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0">Recent digits</h3>
+    <div class="digits" id="recent">—</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0">Model diagnostics</h3>
+    <table>
+      <tbody>
+        <tr><th>Best digit probability</th><td id="bestp">—</td></tr>
+        <tr><th>Worst digit probability</th><td id="worstp">—</td></tr>
+        <tr><th>Walk-forward match hit rate</th><td id="wfmatch">—</td></tr>
+        <tr><th>Walk-forward differ hit rate</th><td id="wfdiff">—</td></tr>
+        <tr><th>Current last digit</th><td id="last">—</td></tr>
+        <tr><th>Current streak</th><td id="streak">—</td></tr>
+        <tr><th>Data quality</th><td id="quality">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0">How to use the signal</h3>
+    <p class="small">
+      Wait until the engine changes from <b>WAITING</b> to a green/blue setup. The entry timer is a timing aid only; it does not guarantee the next tick.
+      For Matches, the model selects the highest-scoring digit. For Differs, it selects the lowest-scoring digit as the digit to avoid.
+      If confidence or validation quality falls below the threshold, the engine deliberately says <b>WAIT / NO TRADE</b>.
+    </p>
+    <p class="small warn">Important: digit contracts are probabilistic. No indicator, AI model, or pattern can guarantee a win. Test on demo first and never treat the displayed confidence as a guaranteed probability of the next tick.</p>
+  </div>
+
+  <div class="footer">Market data is read directly from Deriv's public WebSocket. No account login or trading token is used by this page. The page does not place trades automatically.</div>
+</div>
+
+<script>
+const WS_URL='wss://ws.binaryws.com/websockets/v3';
+let ws=null, symbols=[], ticks=[], selected='', subId=null, timer=null, entryTimer=null, lastEpoch=0, lastTickAt=0;
+const $=id=>document.getElementById(id);
+
+function setStatus(t,good=false,bad=false){$('status').textContent=t;$('status').className='status '+(good?'ok':bad?'bad':'')}
+function req(o){if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))}
+function nameOf(s){return s.underlying_symbol_name||s.display_name||s.symbol||s.underlying_symbol||''}
+function codeOf(s){return s.underlying_symbol||s.symbol||''}
+function typeOf(s){return s.underlying_symbol_type||s.symbol_type||''}
+
+function connectWS(){
+  if(ws && ws.readyState===1)return;
+  ws=new WebSocket(WS_URL);
+  $('engine').textContent='CONNECTING…';
+  ws.onopen=()=>{ $('engine').textContent='LIVE'; req({active_symbols:'brief',req_id:1}); setStatus('Connected. Loading all currently active markets…',true); };
+  ws.onmessage=e=>handle(JSON.parse(e.data));
+  ws.onerror=()=>{ $('engine').textContent='ERROR'; setStatus('WebSocket error. Try CONNECT LIVE again.',false,true) };
+  ws.onclose=()=>{ $('engine').textContent='OFFLINE'; setStatus('Disconnected.'); };
+}
+
+function handle(d){
+  if(d.error){setStatus(d.error.message||'Deriv API error',false,true);return}
+  if(d.msg_type==='active_symbols'){
+    symbols=(d.active_symbols||[]).filter(x=>codeOf(x));
+    renderSymbols();
+    setStatus(`Live Deriv catalogue loaded • ${symbols.length} markets`,true);
+    return;
+  }
+  if(d.msg_type==='history'){
+    const p=d.history?.prices||[];
+    ticks=p.map(x=>Number(x)).filter(Number.isFinite);
+    render();
+    if(selected) subscribe();
+    return;
+  }
+  if(d.msg_type==='tick'){
+    const t=d.tick;
+    if(!t||!Number.isFinite(Number(t.quote)))return;
+    const q=Number(t.quote);
+    ticks.push(q); if(ticks.length>1000)ticks=ticks.slice(-1000);
+    lastEpoch=Number(t.epoch)||Math.floor(Date.now()/1000);
+    render();
+  }
+}
+
+function renderSymbols(){
+  const sel=$('symbol'), old=selected||sel.value;
+  sel.innerHTML='';
+  const groups={};
+  symbols.forEach(s=>{
+    const type=typeOf(s), market=s.market||'other';
+    const group=type==='synthetic_index'||market==='synthetic_index'?'Synthetic Indices':(market||type||'Other');
+    (groups[group]??=[]).push(s);
+  });
+  Object.keys(groups).sort((a,b)=>a.localeCompare(b)).forEach(g=>{
+    const og=document.createElement('optgroup');og.label=g;
+    groups[g].sort((a,b)=>nameOf(a).localeCompare(nameOf(b))).forEach(s=>{
+      const op=document.createElement('option');op.value=codeOf(s);op.textContent=`${nameOf(s)} [${codeOf(s)}]`;
+      og.appendChild(op);
+    });sel.appendChild(og);
+  });
+  if(old && [...sel.options].some(o=>o.value===old))sel.value=old;
+  else if(sel.options.length)sel.selectedIndex=0;
+  selected=sel.value;
+}
+
+function digitsFromPrices(arr){
+  return arr.map(v=>{
+    const s=String(v);
+    const clean=s.replace(/[^0-9]/g,'');
+    return clean?Number(clean.slice(-1)):null;
+  }).filter(x=>x>=0&&x<=9);
+}
+
+function weightedProbs(ds){
+  const n=ds.length, counts=Array(10).fill(1.0);
+  const W=Math.min(260,n);
+  for(let i=n-W;i<n;i++){
+    const age=n-1-i;
+    const w=Math.exp(-age/70);
+    counts[ds[i]]+=w;
+  }
+  const total=counts.reduce((a,b)=>a+b,0);
+  return counts.map(x=>x/total);
+}
+
+function transitionScores(ds){
+  const tr=Array.from({length:10},()=>Array(10).fill(.5));
+  for(let i=1;i<ds.length;i++)tr[ds[i-1]][ds[i]]+=1;
+  const last=ds[ds.length-1];
+  const row=tr[last], sum=row.reduce((a,b)=>a+b,0);
+  return row.map(x=>x/sum);
+}
+
+function streakInfo(ds){
+  if(!ds.length)return {digit:null,len:0};
+  let d=ds[ds.length-1],len=1;
+  for(let i=ds.length-2;i>=0&&ds[i]===d;i--)len++;
+  return {digit:d,len};
+}
+
+function walkForward(ds){
+  const start=Math.max(80,ds.length-180), end=ds.length-1;
+  let m=0,dm=0,total=0;
+  for(let i=start;i<end;i++){
+    const train=ds.slice(0,i), p=weightedProbs(train), t=transitionScores(train);
+    const s=p.map((x,d)=>0.75*x+0.25*t[train[train.length-1]??0][d]);
+    const pred=s.indexOf(Math.max(...s)), avoid=s.indexOf(Math.min(...s));
+    m+=(ds[i]===pred); dm+=(ds[i]!==avoid); total++;
+  }
+  return total?{m:m/total,dm:dm/total,total}:null;
+}
+
+function analyze(){
+  const ds=digitsFromPrices(ticks);
+  if(ds.length<40){showWait('WAITING','Need more verified ticks');return}
+  const p=weightedProbs(ds), tr=transitionScores(ds), st=streakInfo(ds);
+  let score=p.map((x,d)=>0.62*x+0.28*tr[d]+0.10*(d===st.digit?Math.min(1,st.len/5)*0.1:0));
+  let sum=score.reduce((a,b)=>a+b,0);score=score.map(x=>x/sum);
+  const best=score.indexOf(Math.max(...score)), worst=score.indexOf(Math.min(...score));
+  const wf=walkForward(ds);
+  const mode=$('contract').value, conf=mode==='match'?score[best]:1-score[worst];
+  const edge=conf-.90; // differs success probability is 1 - probability of avoided digit
+  const min=Number($('minConf').value)/100;
+  const stable=wf && (mode==='match'?wf.m>=.10:wf.dm>=.90);
+  const enough=conf>=min && stable && ds.length>=80;
+  renderBars(score,best,worst);
+  $('confidence').textContent=(conf*100).toFixed(1)+'%';
+  $('edge').textContent=(edge*100).toFixed(1)+'%';
+  $('ticks').textContent=ds.length;
+  $('bestp').textContent=(score[best]*100).toFixed(1)+'% (digit '+best+')';
+  $('worstp').textContent=(score[worst]*100).toFixed(1)+'% (digit '+worst+')';
+  $('wfmatch').textContent=wf?(wf.m*100).toFixed(1)+'%':'—';
+  $('wfdiff').textContent=wf?(wf.dm*100).toFixed(1)+'%':'—';
+  $('last').textContent=st.digit;
+  $('streak').textContent=`Digit ${st.digit} × ${st.len}`;
+  $('quality').textContent=ds.length>=300?'Strong':ds.length>=120?'Good':'Building';
+  $('modelText').textContent=`Recency-weighted frequencies + last-digit transition probabilities + streak dampening + ${wf?wf.total:0}-step walk-forward check.`;
+  if(!enough){showWait('WAIT / NO TRADE',`Best candidate: ${mode==='match'?'MATCH':'DIFFER'} ${mode==='match'?best:worst} • model not strong enough`);return}
+  const target=mode==='match'?`MATCH ${best}`:`DIFFERS ${worst} (avoid ${worst})`;
+  showSignal(mode==='match'?'MATCH':'DIFFER',target,conf);
+}
+
+function showWait(title,text){const d=$('decision');d.className='decision wait';d.querySelector('h2').textContent=title; $('target').textContent=text; $('entry').textContent='No entry yet';clearInterval(entryTimer)}
+function showSignal(kind,target,conf){
+  const d=$('decision');d.className='decision '+(kind==='MATCH'?'match':'diff');d.querySelector('h2').textContent=kind;$('target').textContent=target;
+  let sec=2; $('entry').textContent=`ENTRY WINDOW • ${sec}s`;
+  clearInterval(entryTimer);
+  entryTimer=setInterval(()=>{sec--; if(sec<=0){clearInterval(entryTimer);$('entry').textContent='ENTRY WINDOW • NOW';}else $('entry').textContent=`ENTRY WINDOW • ${sec}s`},1000);
+}
+
+function renderBars(p,best,worst){
+  const box=$('bars');box.innerHTML='';
+  p.forEach((v,d)=>{const x=document.createElement('div');x.className='barbox';x.innerHTML=`<b>${(v*100).toFixed(1)}%</b><div class="bar" style="height:${Math.max(3,v*100*1.15)}%"></div><span>${d}</span>`;box.appendChild(x)})
+}
+function render(){
+  const ds=digitsFromPrices(ticks);
+  $('recent').textContent=ds.slice(-70).join('');
+  if(ds.length)analyze();
+  if(lastTickAt){const now=Date.now();const dt=now-lastTickAt;$('rate').textContent=dt>0?(1000/dt).toFixed(1)+'/s':'—'} lastTickAt=Date.now();
+}
+function subscribe(){
+  if(!selected)return;
+  ticks=[];clearInterval(timer);clearInterval(entryTimer);
+  req({ticks_history:selected,count:Number($('count').value),end:'latest',style:'ticks',subscribe:0,req_id:2});
+  req({ticks:selected,subscribe:1,req_id:3});
+  setStatus(`Connected • collecting ${nameOf(symbols.find(s=>codeOf(s)===selected))||selected}`,true);
+}
+function stop(){
+  try{if(ws&&ws.readyState===1)req({forget_all:'ticks'})}catch(e){}
+  clearInterval(timer);clearInterval(entryTimer);$('engine').textContent='STOPPED';setStatus('Stopped.');showWait('STOPPED','Press CONNECT LIVE to resume.');
+}
+$('connect').onclick=()=>{connectWS();setTimeout(()=>{selected=$('symbol').value;subscribe()},500)};
+$('stop').onclick=stop;
+$('refresh').onclick=()=>{connectWS();req({active_symbols:'brief',req_id:10})};
+$('symbol').onchange=()=>{selected=$('symbol').value;if(ws&&ws.readyState===1)subscribe()};
+$('count').onchange=()=>{if(selected&&ws&&ws.readyState===1)subscribe()};
+$('contract').onchange=()=>{if(ticks.length)analyze()};
+$('minConf').oninput=()=>{if(ticks.length)analyze()};
+connectWS();
+</script>
+</body>
+</html>
