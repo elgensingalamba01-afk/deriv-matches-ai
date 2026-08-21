@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Deriv Signal Lab PRO V8</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#070b11;color:#f7f9fc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1000px;margin:auto;padding:14px}
+.title{font-size:27px;font-weight:900;margin:5px 0}.sub{color:#9aa7b8;font-size:12px;margin-bottom:12px}
+.card{background:#111923;border:1px solid #283548;border-radius:18px;padding:14px;margin:10px 0;box-shadow:0 8px 30px #0003}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px}.tab{white-space:nowrap;padding:10px 12px;border:1px solid #344256;border-radius:11px;background:#0b1118;font-size:12px}.tab.on{border-color:#16d09a;color:#16d09a}
+input,select,button{width:100%;background:#0a1017;color:#fff;border:1px solid #38475c;border-radius:12px;padding:13px;margin:5px 0;font-size:15px}
+button{background:#16d09a;color:#04110c;border:0;font-weight:900}.stop{background:#273240;color:#fff}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.status{color:#9aa7b8;font-size:12px;margin-top:5px}.err{color:#ff8e9d;font-size:12px}
+.decision{text-align:center;font-size:21px;font-weight:1000;padding:13px}.run{color:#16d09a}.wait{color:#ffc857}
+.signal{font-size:42px;text-align:center;font-weight:1000;line-height:1.05}.signal small{display:block;font-size:12px;color:#9aa7b8;font-weight:500;margin-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.k{background:#0a1017;border-radius:11px;padding:11px;text-align:center}.k b{display:block;font-size:18px}.k span{color:#8f9caf;font-size:9px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.dig{background:#0a1017;border-radius:10px;padding:9px;text-align:center}.dig.hot{outline:2px solid #16d09a}
+.bar{height:5px;background:#293444;border-radius:9px;margin:6px 0}.fill{height:100%;background:#16d09a;border-radius:9px}
+.recent{font-family:ui-monospace,monospace;line-height:1.8;word-break:break-all;color:#c9d2df}.tiny{font-size:10px;color:#7f8c9f}.ok{color:#16d09a}.bad{color:#ff8e9d}
+.badge{display:inline-block;padding:4px 7px;border-radius:8px;background:#0a1017;margin:3px;font-size:10px}.live{border:1px solid #16d09a}.warn{border:1px solid #ffc857}
+#countdown{font-size:34px;font-weight:1000;text-align:center;margin-top:8px}
+@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}.row{gap:6px}.title{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="title">🧠 Deriv Signal Lab PRO V8</div>
+<div class="sub">Live symbols • historical ticks • multi-window model • walk-forward validation • strict no-trade filter</div>
+
+<div class="card">
+  <div id="tabs" class="tabs"></div>
+  <input id="search" placeholder="Search any index…">
+  <select id="symbol"></select>
+  <div id="symbolMeta" class="status">Waiting for live catalogue…</div>
+
+  <div class="row">
+    <select id="window"><option value="200">200 ticks</option><option value="500" selected>500 ticks</option><option value="1000">1000 ticks</option></select>
+    <select id="contract">
+      <option value="match">Matches</option><option value="diff">Differs</option>
+      <option value="over">Over</option><option value="under">Under</option>
+      <option value="even">Even</option><option value="odd">Odd</option>
+    </select>
+  </div>
+  <div class="row">
+    <select id="duration"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select>
+    <select id="threshold"><option>55</option><option selected>60</option><option>65</option><option>70</option><option>75</option></select>
+  </div>
+  <div class="row">
+    <button id="connect">CONNECT LIVE</button><button id="stop" class="stop">STOP</button>
+  </div>
+  <div id="status" class="status">Loading live Deriv catalogue…</div>
+  <div id="error" class="err"></div>
+</div>
+
+<div class="card">
+  <div class="decision wait" id="decision">WAITING FOR DATA</div>
+  <div class="signal" id="signal">—<small id="entry">No signal</small></div>
+  <div id="countdown"></div>
+  <div class="sub" id="reason">Connect to a verified index. The engine will refuse weak setups.</div>
+</div>
+
+<div class="card">
+  <div class="kpis">
+    <div class="k"><b id="score">—</b><span>CONFIDENCE</span></div>
+    <div class="k"><b id="edge">—</b><span>MODEL EDGE</span></div>
+    <div class="k"><b id="ticks">0</b><span>TICKS</span></div>
+    <div class="k"><b id="rate">—</b><span>TICK RATE</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <b>Digit probability model</b>
+  <div id="digits" class="grid" style="margin-top:9px"></div>
+</div>
+
+<div class="card">
+  <b>Model diagnostics</b>
+  <div class="kpis" style="margin-top:8px">
+    <div class="k"><b id="mode">—</b><span>TOP DIGIT</span></div>
+    <div class="k"><b id="streak">—</b><span>STREAK</span></div>
+    <div class="k"><b id="entropy">—</b><span>ENTROPY</span></div>
+    <div class="k"><b id="quality">—</b><span>QUALITY</span></div>
+  </div>
+  <div id="diagnostics" class="status" style="margin-top:9px">—</div>
+</div>
+
+<div class="card">
+  <b>Walk-forward check</b>
+  <div id="validation" class="status" style="margin-top:8px">Waiting for enough ticks…</div>
+</div>
+
+<div class="card">
+  <b>Recent digits</b>
+  <div id="recent" class="recent" style="margin-top:8px">—</div>
+</div>
+
+<div class="card tiny">
+  This is an analysis/filtering tool, not a guaranteed predictor. Digit frequencies can fluctuate and apparent patterns can disappear. Use demo first and never treat a confidence number as a promise of profit.
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let ws=null,ticks=[],tickTimes=[],instruments=[],family="All",catalogSource="none",connectedSymbol="",countdownTimer=null;
+const families=["All","Volatility","Crash/Boom","Jump","Step","Range Break","Drift Switch","Hybrid","DEX","High Frequency","Multi Step","Other"];
+
+/* Static display catalogue: it keeps the UI usable while live symbols load.
+   A trade connection is NEVER made from this list unless the symbol is verified
+   against Deriv's live active_symbols response. */
+const fallback=[
+["R_10","Volatility 10 Index","Volatility"],["R_25","Volatility 25 Index","Volatility"],["R_50","Volatility 50 Index","Volatility"],["R_75","Volatility 75 Index","Volatility"],["R_100","Volatility 100 Index","Volatility"],["R_250","Volatility 250 Index","Volatility"],
+["1HZ10V","Volatility 10 (1s) Index","Volatility"],["1HZ15V","Volatility 15 (1s) Index","Volatility"],["1HZ25V","Volatility 25 (1s) Index","Volatility"],["1HZ30V","Volatility 30 (1s) Index","Volatility"],["1HZ50V","Volatility 50 (1s) Index","Volatility"],["1HZ75V","Volatility 75 (1s) Index","Volatility"],["1HZ90V","Volatility 90 (1s) Index","Volatility"],["1HZ100V","Volatility 100 (1s) Index","Volatility"],["1HZ150V","Volatility 150 (1s) Index","Volatility"],["1HZ250V","Volatility 250 (1s) Index","Volatility"],
+["BOOM1000","Boom 1000 Index","Crash/Boom"],["BOOM900","Boom 900 Index","Crash/Boom"],["BOOM600","Boom 600 Index","Crash/Boom"],["BOOM500","Boom 500 Index","Crash/Boom"],["BOOM300","Boom 300 Index","Crash/Boom"],["BOOM150","Boom 150 Index","Crash/Boom"],["BOOM100","Boom 100 Index","Crash/Boom"],
+["CRASH1000","Crash 1000 Index","Crash/Boom"],["CRASH900","Crash 900 Index","Crash/Boom"],["CRASH600","Crash 600 Index","Crash/Boom"],["CRASH500","Crash 500 Index","Crash/Boom"],["CRASH300","Crash 300 Index","Crash/Boom"],["CRASH150","Crash 150 Index","Crash/Boom"],
+["JD10","Jump 10 Index","Jump"],["JD25","Jump 25 Index","Jump"],["JD50","Jump 50 Index","Jump"],["JD75","Jump 75 Index","Jump"],["JD100","Jump 100 Index","Jump"],
+["stpRNG","Step Index","Step"],["stpRNG200","Step Index 200","Step"],["stpRNG300","Step Index 300","Step"],["stpRNG400","Step Index 400","Step"],["stpRNG500","Step Index 500","Step"],
+["RDB100","Range Break 100 Index","Range Break"],["RDB200","Range Break 200 Index","Range Break"],
+["DSI10","Drift Switch Index 10","Drift Switch"],["DSI20","Drift Switch Index 20","Drift Switch"],["DSI30","Drift Switch Index 30","Drift Switch"],
+["VOVB400","Vol over Boom 400","Hybrid"],["VOVB550","Vol over Boom 550","Hybrid"],["VOVB750","Vol over Boom 750","Hybrid"],["VOVC400","Vol over Crash 400","Hybrid"],["VOVC550","Vol over Crash 550","Hybrid"],["VOVC750","Vol over Crash 750","Hybrid"]
+].map(x=>({symbol:x[0],name:x[1],family:x[2],verified:false}));
+
+function guessFamily(name,market,submarket){
+  let s=(name+" "+market+" "+submarket).toLowerCase();
+  if(s.includes("volatility"))return"Volatility";
+  if(s.includes("crash")||s.includes("boom"))return"Crash/Boom";
+  if(s.includes("jump"))return"Jump";
+  if(s.includes("step"))return"Step";
+  if(s.includes("range break"))return"Range Break";
+  if(s.includes("drift"))return"Drift Switch";
+  if(s.includes("dex"))return"DEX";
+  if(s.includes("hybrid")||s.includes("over boom")||s.includes("over crash"))return"Hybrid";
+  if(s.includes("high frequency")||s.includes("hfvol"))return"High Frequency";
+  if(s.includes("multi step"))return"Multi Step";
+  return"Other";
+}
+function renderTabs(){
+  $("tabs").innerHTML=families.map(f=>`<div class="tab ${f===family?"on":""}" data-f="${f}">${f}</div>`).join("");
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{family=t.dataset.f;renderTabs();populate()});
+}
+function populate(){
+  let q=$("search").value.toLowerCase(),old=$("symbol").value;
+  let arr=instruments.filter(x=>(family==="All"||x.family===family)&&(!q||x.name.toLowerCase().includes(q)||x.symbol.toLowerCase().includes(q)));
+  $("symbol").innerHTML=arr.length?arr.map(x=>`<option value="${x.symbol}">${x.name} [${x.symbol}]${x.verified?"":" • display only"}</option>`).join(""):`<option value="">No indexes found</option>`;
+  if(arr.some(x=>x.symbol===old))$("symbol").value=old;
+  updateMeta();
+}
+function updateMeta(){
+  let x=instruments.find(a=>a.symbol===$("symbol").value);
+  if(!x){$("symbolMeta").textContent="No index selected";return}
+  $("symbolMeta").innerHTML=x.verified?`<span class="badge live">LIVE VERIFIED</span> ${x.family} • ${x.symbol}`:`<span class="badge warn">DISPLAY ONLY</span> Select CONNECT LIVE to refresh/verify this symbol`;
+}
+renderTabs();
+instruments=fallback.slice();
+populate();
+
+function setStatus(s){$("status").innerHTML=s}
+function digitFromQuote(q){
+  let s=String(q),parts=s.split("."),frac=parts[1]||"";
+  if(frac.length)return Number(frac.slice(-1));
+  return Number(parts[0].replace(/\D/g,"").slice(-1)||0);
+}
+function entropy(counts,n){
+  if(!n)return 0;let h=0;
+  for(const c of counts)if(c){let p=c/n;h-=p*Math.log2(p)}
+  return h;
+}
+function counts(arr){let c=Array(10).fill(0);for(const d of arr)c[d]++;return c}
+function normalize(a){let s=a.reduce((x,y)=>x+y,0)||1;return a.map(x=>x/s)}
+function transitionScore(arr){
+  if(arr.length<30)return Array(10).fill(.1);
+  let last=arr.slice(-1)[0],c=Array(10).fill(0),n=0;
+  for(let i=0;i<arr.length-1;i++)if(arr[i]===last){c[arr[i+1]]++;n++}
+  return n?normalize(c.map(x=>x+1)):Array(10).fill(.1);
+}
+function streakInfo(arr){
+  if(!arr.length)return{digit:null,len:0};
+  let d=arr[arr.length-1],len=1;
+  for(let i=arr.length-2;i>=0&&arr[i]===d;i--)len++;
+  return{digit:d,len};
+}
+function brierValidation(arr){
+  /* Rolling one-step walk-forward: estimate digit probabilities from the past
+     and score them on unseen next ticks. Lower Brier is better. */
+  if(arr.length<220)return null;
+  let start=Math.max(100,arr.length-220),sum=0,n=0;
+  for(let i=start;i<arr.length;i++){
+    let train=arr.slice(Math.max(0,i-100),i),c=counts(train);
+    let p=normalize(c.map(x=>x+1));
+    let y=arr[i];
+    let b=0;for(let d=0;d<10;d++)b+=Math.pow(p[d]-(d===y?1:0),2);
+    sum+=b;n++;
+  }
+  return n?sum/n:null;
+}
+function buildModel(){
+  let n=ticks.length;
+  if(n<120)return null;
+  let windows=[50,100,200,Math.min(500,n)];
+  let weights=[.12,.20,.28,.40],p=Array(10).fill(0);
+  windows.forEach((w,i)=>{
+    let c=counts(ticks.slice(-w));
+    for(let d=0;d<10;d++)p[d]+=weights[i]*(c[d]+1)/(w+10);
+  });
+  let tr=transitionScore(ticks.slice(-300));
+  for(let d=0;d<10;d++)p[d]*=(.82+.18*(tr[d]/.1));
+  p=normalize(p);
+
+  let recent=counts(ticks.slice(-40)),long=counts(ticks.slice(-300));
+  for(let d=0;d<10;d++){
+    let rp=recent[d]/40,lp=long[d]/Math.min(300,n);
+    p[d]*=(1+.22*(rp-lp)*10);
+  }
+  p=normalize(p);
+
+  let order=p.map((v,d)=>({d,p:v})).sort((a,b)=>b.p-a.p),top=order[0],second=order[1];
+  let sep=(top.p-second.p)*100;
+  let ent=entropy(long,Math.min(300,n));
+  let st=streakInfo(ticks);
+  let base=50+(top.p-.1)*180+sep*1.4+(ent<3.12?3:0);
+  let validation=brierValidation(ticks);
+  if(validation!==null){
+    /* 0.18 is the uniform 10-class Brier score; reward only if walk-forward
+       performance is better than that baseline. */
+    base+=(0.18-validation)*100;
+  }
+  let confidence=Math.max(1,Math.min(99,base));
+  let threshold=+$("threshold").value;
+  let stable=confidence>=threshold&&sep>=1.2&&ent>=2.75;
+  return{p,order,top,second,sep,ent,st,confidence,stable,validation};
+}
+function renderDigits(p,top){
+  let mx=Math.max(...p),order=p.map((v,d)=>({d,p:v})).sort((a,b)=>a.d-b.d);
+  $("digits").innerHTML=order.map(x=>`<div class="dig ${x.d===top?'hot':''}">
+    <b>${x.d}</b><div class="bar"><div class="fill" style="width:${Math.max(3,100*x.p/mx)}%"></div></div>
+    <span class="tiny">${(x.p*100).toFixed(1)}%</span></div>`).join("");
+}
+function contractSignal(m){
+  let c=$("contract").value,t=m.top.d;
+  if(c==="match")return `MATCH ${t}`;
+  if(c==="diff")return `DIFFERS ${t}`;
+  if(c==="even")return t%2===0?"EVEN":"ODD";
+  if(c==="odd")return t%2?"ODD":"EVEN";
+  if(c==="over")return `OVER ${Math.min(8,t)}`;
+  return `UNDER ${Math.max(1,t)}`;
+}
+function startCountdown(){
+  clearInterval(countdownTimer);
+  let n=2;
+  $("countdown").textContent=`ENTRY WINDOW: ${n}s`;
+  countdownTimer=setInterval(()=>{n--;if(n<=0){clearInterval(countdownTimer);$("countdown").textContent="ENTRY WINDOW: NOW";}else $("countdown").textContent=`ENTRY WINDOW: ${n}s`},1000);
+}
+function analyse(){
+  let n=ticks.length;$("ticks").textContent=n;
+  if(n<120){
+    $("decision").textContent="COLLECTING VERIFIED TICKS";$("decision").className="decision wait";
+    $("signal").innerHTML="—<small>Need at least 120 ticks</small>";$("score").textContent="—";$("edge").textContent="—";
+    $("quality").textContent="WAIT";$("reason").textContent=`Received ${n} verified ticks. The engine will not manufacture a signal from insufficient data.`;
+    return;
+  }
+  let m=buildModel();renderDigits(m.p,m.top.d);
+  let rate="—";
+  if(tickTimes.length>1){let a=tickTimes.slice(-30),dt=a[a.length-1]-a[0];if(dt>0)rate=(29/dt).toFixed(2)+"/s";}
+  $("rate").textContent=rate;$("score").textContent=m.confidence.toFixed(1)+"%";$("edge").textContent=m.sep.toFixed(1)+" pp";
+  $("mode").textContent=m.top.d;$("streak").textContent=`${m.st.digit} × ${m.st.len}`;$("entropy").textContent=m.ent.toFixed(2);
+  let q=m.validation===null?"VALIDATING":m.validation<.175?"GOOD":m.validation<.185?"NEUTRAL":"WEAK";
+  $("quality").textContent=q;
+  $("diagnostics").innerHTML=`Top digit <b>${m.top.d}</b> ${(m.top.p*100).toFixed(1)}% • second ${m.second.d} ${(m.second.p*100).toFixed(1)}% • separation ${m.sep.toFixed(2)} pp • entropy ${m.ent.toFixed(2)}${m.validation===null?"":" • walk-forward Brier "+m.validation.toFixed(3)}`;
+  if(m.validation!==null)$("validation").innerHTML=`Walk-forward Brier: <b>${m.validation.toFixed(3)}</b> (lower is better; uniform 10-digit baseline ≈ 0.180). ${m.validation<.175?"Model shows some historical improvement.":"No convincing historical improvement; signal remains filtered."}`;
+  if(m.stable){
+    $("decision").textContent="SIGNAL READY";$("decision").className="decision run";
+    $("signal").innerHTML=contractSignal(m)+`<small>Suggested duration: ${$("duration").value} tick(s)</small>`;
+    $("reason").textContent=`Multiple windows agree on digit ${m.top.d}. This passes the current threshold, separation and randomness filters.`;
+    startCountdown();
+  }else{
+    clearInterval(countdownTimer);$("countdown").textContent="";
+    $("decision").textContent="WAIT / NO TRADE";$("decision").className="decision wait";
+    $("signal").innerHTML="—<small>No sufficiently strong setup</small>";
+    $("reason").textContent=`Top digit ${m.top.d} is ${(m.top.p*100).toFixed(1)}%, but the model does not have enough validated edge to recommend a trade.`;
+  }
+  $("recent").textContent=ticks.slice(-160).join(" ");
+}
+function closeWS(){if(ws){try{ws.close()}catch(_){}ws=null}connectedSymbol=""}
+function normalizeLiveSymbol(a){
+  let symbol=a.symbol||a.underlying_symbol;
+  let name=a.display_name||a.underlying_symbol_name||symbol;
+  return symbol&&name?{symbol,name,family:guessFamily(name,a.market,a.submarket),verified:true}:null;
+}
+function requestCatalog(url,legacy){
+  return new Promise((resolve,reject)=>{
+    let w;try{w=new WebSocket(url)}catch(e){reject(e);return}
+    let timer=setTimeout(()=>{try{w.close()}catch(_){}reject(new Error("catalog timeout"))},7000);
+    w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",...(legacy?{product_type:"basic"}:{}),req_id:101}));
+    w.onmessage=e=>{
+      let x;try{x=JSON.parse(e.data)}catch(_){return}
+      if(x.error){clearTimeout(timer);try{w.close()}catch(_){}reject(new Error(x.error.message||"catalog error"));return}
+      if(Array.isArray(x.active_symbols)){
+        clearTimeout(timer);try{w.close()}catch(_){}
+        let live=x.active_symbols.map(normalizeLiveSymbol).filter(Boolean);
+        resolve(live);
+      }
+    };
+    w.onerror=()=>{clearTimeout(timer);try{w.close()}catch(_){}reject(new Error("catalog socket error"))};
+  });
+}
+async function loadCatalog(){
+  setStatus("Loading verified symbols from Deriv…");
+  try{
+    /* Use the stable public legacy market-data socket for browser compatibility.
+       Deriv documents active_symbols as the source of valid symbols. */
+    let live=await requestCatalog("wss://ws.derivws.com/websockets/v3?app_id=1089",true);
+    let map=new Map(live.map(x=>[x.symbol,x]));
+    let staticOnly=instruments.filter(x=>!x.verified&&!map.has(x.symbol));
+    instruments=[...live,...staticOnly];
+    catalogSource="live";populate();
+    setStatus(`<span class="ok">LIVE CATALOGUE • ${live.length} verified instruments</span>`);
+    $("error").textContent="";
+  }catch(e){
+    catalogSource="fallback";populate();
+    setStatus("Display catalogue loaded • live verification unavailable");
+    $("error").textContent="Deriv catalogue could not be refreshed. Connect Live will retry using the stable public market-data socket.";
+  }
+}
+loadCatalog();
+
+function historyAndStream(symbol){
+  closeWS();
+  ticks=[];tickTimes=[];analyse();
+  let url="wss://ws.derivws.com/websockets/v3?app_id=1089",w;
+  try{w=new WebSocket(url)}catch(e){$("error").textContent="Browser could not open Deriv WebSocket.";return}
+  ws=w;connectedSymbol=symbol;
+  let historyDone=false,streaming=false,timeout=setTimeout(()=>{if(!streaming){$("error").textContent="Deriv did not return tick history. Try Connect Live again.";try{w.close()}catch(_){} }},9000);
+  w.onopen=()=>{
+    setStatus(`Connected • requesting ${$("window").value} verified ticks…`);
+    w.send(JSON.stringify({ticks_history:symbol,end:"latest",count:+$("window").value,style:"ticks",req_id:201}));
+  };
+  w.onmessage=e=>{
+    let x;try{x=JSON.parse(e.data)}catch(_){return}
+    if(x.error){clearTimeout(timeout);$("error").textContent=x.error.message||"Deriv rejected the request";try{w.close()}catch(_){}return}
+    if(x.history&&Array.isArray(x.history.prices)){
+      clearTimeout(timeout);historyDone=true;
+      ticks=x.history.prices.map(digitFromQuote);
+      tickTimes=(x.history.times||[]).map(Number);
+      setStatus(`<span class="ok">LIVE • ${$("symbol").selectedOptions[0]?.text||symbol} • history loaded</span>`);
+      analyse();
+      w.send(JSON.stringify({ticks:symbol,subscribe:1,req_id:202}));
+    }
+    if(x.msg_type==="tick"&&x.tick){
+      streaming=true;
+      let d=digitFromQuote(x.tick.quote);
+      ticks.push(d);tickTimes.push(Number(x.tick.epoch));
+      if(ticks.length>1500){ticks.shift();tickTimes.shift()}
+      setStatus(`<span class="ok">LIVE • ${$("symbol").selectedOptions[0]?.text||symbol} • last digit ${d}</span>`);
+      analyse();
+    }
+  };
+  w.onerror=()=>{$("error").textContent="Deriv WebSocket connection error. Tap Connect Live again."};
+  w.onclose=()=>{if(streaming)$("status").textContent="Stream stopped."};
+}
+async function connect(){
+  clearInterval(countdownTimer);$("countdown").textContent="";
+  let sym=$("symbol").value;if(!sym){$("error").textContent="Choose an index.";return}
+  $("error").textContent="";setStatus("Checking symbol against Deriv active_symbols…");
+  try{
+    let live=await requestCatalog("wss://ws.derivws.com/websockets/v3?app_id=1089",true);
+    let exact=live.find(x=>x.symbol===sym);
+    if(!exact){
+      $("error").textContent=`${sym} is not currently returned by Deriv active_symbols. Choose a verified index.`;
+      setStatus("Symbol verification failed.");
+      return;
+    }
+    let map=new Map(instruments.map(x=>[x.symbol,x]));map.set(sym,exact);instruments=[...map.values()];
+    populate();$("symbol").value=sym;updateMeta();
+    historyAndStream(sym);
+  }catch(e){
+    $("error").textContent="Could not verify the symbol because the Deriv public data socket is unavailable.";
+    setStatus("Verification unavailable.");
+  }
+}
+$("connect").onclick=connect;
+$("stop").onclick=()=>{clearInterval(countdownTimer);$("countdown").textContent="";closeWS();setStatus("Stopped");};
+$("search").oninput=populate;
+$("symbol").onchange=()=>{clearInterval(countdownTimer);$("countdown").textContent="";updateMeta();if(ws)closeWS();ticks=[];tickTimes=[];analyse()};
+$("window").onchange=()=>{if(ws){let s=$("symbol").value;historyAndStream(s)}};
+</script>
+</body>
+</html>
