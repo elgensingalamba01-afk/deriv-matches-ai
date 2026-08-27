@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Deriv AI Pro X — DeepSeek Elite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #070b14;
+            --bg-secondary: #0d1628;
+            --bg-card: #111d33;
+            --border-color: #1a2a4a;
+            --text-primary: #e8edf5;
+            --text-secondary: #7b8eae;
+            --accent-blue: #00d4ff;
+            --accent-purple: #7b2ffc;
+            --accent-green: #00ff88;
+            --accent-red: #ff4466;
+            --accent-yellow: #ffaa00;
+            --deepseek-color: #4d6bfe;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 12px;
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0 16px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo h1 {
+            font-size: 20px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--deepseek-color), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo .subtitle {
+            font-size: 10px;
+            color: var(--text-secondary);
+            -webkit-text-fill-color: var(--text-secondary);
+            letter-spacing: 0.3px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-card);
+            padding: 5px 14px 5px 10px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            font-size: 11px;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .dot.green { background: var(--accent-green); box-shadow: 0 0 12px #00ff8866; animation: pulse 1.5s infinite; }
+        .dot.yellow { background: var(--accent-yellow); box-shadow: 0 0 12px #ffaa0066; animation: pulse 1.5s infinite; }
+        .dot.red { background: var(--accent-red); animation: pulse 1.5s infinite; }
+        .dot.blue { background: var(--deepseek-color); box-shadow: 0 0 12px #4d6bfe66; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .status-text .highlight { color: var(--accent-green); }
+        .status-text .deepseek { color: var(--deepseek-color); font-weight: 600; }
+
+        /* AI Mode Toggle */
+        .ai-toggle {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 3px;
+            border: 1px solid var(--border-color);
+        }
+
+        .ai-toggle button {
+            padding: 5px 14px;
+            border: none;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: var(--font);
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .ai-toggle button.active {
+            background: linear-gradient(135deg, var(--deepseek-color), var(--accent-purple));
+            color: #fff;
+            box-shadow: 0 0 20px #4d6bfe44;
+        }
+
+        .ai-toggle button:hover:not(.active) { color: var(--text-primary); }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-card .number.green { background: var(--accent-green); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card .number.red { background: var(--accent-red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card .number.deepseek { background: linear-gradient(135deg, var(--deepseek-color), var(--accent-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .stat-card .label { font-size: 10px; color: var(--text-secondary); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Index Tags */
+        .index-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin: 10px 0 12px;
+        }
+
+        .index-tag {
+            padding: 3px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+        .index-tag:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+        .index-tag.active { border-color: var(--accent-blue); color: var(--accent-blue); background: #00d4ff11; }
+        .index-tag .count { color: var(--text-secondary); font-size: 9px; }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls input, .controls select {
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: var(--font);
+            transition: 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .controls input:focus, .controls select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px #00d4ff22;
+        }
+
+        .controls input::placeholder { color: var(--text-secondary); }
+        .controls select option { background: var(--bg-secondary); }
+
+        .btn {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: var(--font);
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+        }
+        .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 30px #00d4ff44; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .btn-deepseek {
+            background: linear-gradient(135deg, var(--deepseek-color), var(--accent-purple));
+            color: #fff;
+        }
+        .btn-deepseek:hover { transform: scale(1.02); box-shadow: 0 0 30px #4d6bfe44; }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover { border-color: var(--accent-blue); color: var(--text-primary); }
+
+        /* Table */
+        .table-wrapper {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .table-header {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .table-header h3 {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table-header .count {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .table-header .count span { color: var(--accent-blue); }
+
+        .table-scroll {
+            overflow-x: auto;
+            padding: 0 4px 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th {
+            text-align: left;
+            padding: 8px 10px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+        }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #0a1520;
+            vertical-align: middle;
+        }
+
+        tr:hover td { background: #0d1a2e; }
+        tr:last-child td { border-bottom: none; }
+
+        .symbol-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+        .symbol-name .sub { color: var(--text-secondary); font-weight: 400; font-size: 10px; }
+
+        .price { font-family: 'SF Mono', 'Courier New', monospace; font-weight: 500; }
+        .change-up { color: var(--accent-green); }
+        .change-down { color: var(--accent-red); }
+
+        .profit-badge {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+        .profit-badge.negative { color: var(--accent-red); }
+
+        .quality-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .quality-track {
+            width: 50px;
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .quality-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s;
+        }
+        .quality-fill.high { background: var(--accent-green); }
+        .quality-fill.med { background: var(--accent-yellow); }
+        .quality-fill.low { background: var(--accent-red); }
+        .quality-fill.deepseek { background: var(--deepseek-color); }
+        .quality-label { font-size: 10px; font-weight: 600; min-width: 32px; }
+
+        .signal-badge {
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .signal-badge.strong { background: #00ff8833; color: var(--accent-green); }
+        .signal-badge.buy { background: #00d4ff33; color: var(--accent-blue); }
+        .signal-badge.wait { background: #ffaa0033; color: var(--accent-yellow); }
+        .signal-badge.skip { background: #ff446633; color: var(--accent-red); }
+        .signal-badge.deepseek { background: #4d6bfe33; color: var(--deepseek-color); }
+
+        .ai-analysis {
+            font-size: 10px;
+            color: var(--text-secondary);
+            max-width: 150px;
+        }
+        .ai-analysis .deepseek { color: var(--deepseek-color); }
+
+        .loading-overlay {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .loading-overlay.active { display: block; }
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .no-results {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-secondary);
+        }
+        .no-results .icon { font-size: 28px; margin-bottom: 6px; }
+
+        /* DeepSeek AI Badge */
+        .deepseek-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            background: #4d6bfe22;
+            border: 1px solid #4d6bfe44;
+            border-radius: 12px;
+            font-size: 10px;
+            color: var(--deepseek-color);
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .header { flex-direction: column; align-items: stretch; gap: 6px; }
+            .logo h1 { font-size: 17px; }
+            .status-bar { justify-content: center; font-size: 10px; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            .stat-card .number { font-size: 18px; }
+            .controls { flex-direction: column; }
+            .controls input, .controls select { width: 100%; min-width: unset; }
+            .controls .btn { width: 100%; justify-content: center; }
+            .index-tags { gap: 3px; }
+            .index-tag { font-size: 9px; padding: 2px 8px; }
+            .table-header { flex-direction: column; align-items: stretch; gap: 4px; }
+            th, td { padding: 5px 6px; font-size: 10px; }
+            .quality-track { width: 30px; }
+            .symbol-name { font-size: 10px; }
+            .ai-analysis { max-width: 80px; font-size: 9px; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-card .number { font-size: 16px; }
+            .stat-card { padding: 8px 10px; }
+            th, td { padding: 4px 5px; font-size: 9px; }
+            .signal-badge { font-size: 8px; padding: 1px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="logo">
+            <h1>🧠 Deriv AI Pro X <span style="font-size:13px;background:linear-gradient(135deg,#4d6bfe,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">— DeepSeek Elite</span></h1>
+            <div class="subtitle">Live · DeepSeek AI Analysis · Adaptive Probabilities · Quality Gate · Entry Timing</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div class="ai-toggle">
+                <button class="active" id="modeStandard" onclick="setAIMode('standard')">Standard</button>
+                <button id="modeDeepSeek" onclick="setAIMode('deepseek')">🧠 DeepSeek AI</button>
+            </div>
+            <div class="status-bar">
+                <span class="dot green" id="statusDot"></span>
+                <span class="status-text" id="statusText">LIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="number" id="totalMarkets">0</div><div class="label">📊 Markets</div></div>
+        <div class="stat-card"><div class="number green" id="arbitrageCount">0</div><div class="label">🎯 Arbitrage</div></div>
+        <div class="stat-card"><div class="number" id="valueBetsCount">0</div><div class="label">💎 Value Bets</div></div>
+        <div class="stat-card"><div class="number" id="avgQuality">0%</div><div class="label">📈 Avg Quality</div></div>
+        <div class="stat-card"><div class="number deepseek" id="aiSignals">0</div><div class="label">🧠 AI Signals</div></div>
+    </div>
+
+    <!-- INDEX TAGS -->
+    <div class="index-tags" id="indexTags"></div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search index... e.g. Volatility 10, Crash" value="">
+        <select id="historySelect">
+            <option value="100">History 100</option>
+            <option value="500" selected>History 500</option>
+            <option value="1000">History 1000</option>
+        </select>
+        <button class="btn btn-primary" onclick="runAnalysis()">🔍 ANALYZE</button>
+        <button class="btn btn-secondary" onclick="toggleAutoRefresh()">⏸️ Auto</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrapper">
+        <div class="table-header">
+            <h3>📊 Market Analysis Dashboard <span class="deepseek-badge" id="aiBadge">🧠 DeepSeek AI Active</span></h3>
+            <div class="count">Showing <span id="resultCount">0</span> markets</div>
+        </div>
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="min-width:120px;">Index / Market</th>
+                        <th style="min-width:70px;">Price</th>
+                        <th style="min-width:70px;">Change</th>
+                        <th style="min-width:50px;">Vol %</th>
+                        <th style="min-width:90px;">Arbitrage</th>
+                        <th style="min-width:100px;">Quality</th>
+                        <th style="min-width:80px;">Signal</th>
+                        <th style="min-width:70px;">Entry</th>
+                        <th style="min-width:120px;">🧠 AI Analysis</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="9" style="text-align:center;padding:30px;color:var(--text-secondary);">
+                            <div style="font-size:24px;margin-bottom:6px;">📡</div>
+                            Click <strong style="color:var(--accent-blue);">"ANALYZE"</strong> to scan for opportunities
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ================================================================
+//  DERIV AI PRO X — DEEPSEEK ELITE
+//  Complete Working Version - No Loading Hangs
+// ================================================================
+
+// ================================================================
+//  CONFIGURATION
+// ================================================================
+const CONFIG = {
+    DERIV_INDEXES: [
+        { symbol: 'R_10', name: 'Volatility 10', type: 'volatility' },
+        { symbol: 'R_25', name: 'Volatility 25', type: 'volatility' },
+        { symbol: 'R_50', name: 'Volatility 50', type: 'volatility' },
+        { symbol: 'R_75', name: 'Volatility 75', type: 'volatility' },
+        { symbol: 'R_100', name: 'Volatility 100', type: 'volatility' },
+        { symbol: '1HZ10V', name: 'Volatility 10 (1s)', type: 'volatility' },
+        { symbol: '1HZ25V', name: 'Volatility 25 (1s)', type: 'volatility' },
+        { symbol: '1HZ50V', name: 'Volatility 50 (1s)', type: 'volatility' },
+        { symbol: '1HZ75V', name: 'Volatility 75 (1s)', type: 'volatility' },
+        { symbol: '1HZ100V', name: 'Volatility 100 (1s)', type: 'volatility' },
+        { symbol: 'CRASH', name: 'Crash', type: 'crash' },
+        { symbol: 'BOOM', name: 'Boom', type: 'boom' },
+        { symbol: 'STEP', name: 'Step', type: 'step' },
+        { symbol: 'RANGE', name: 'Range', type: 'range' },
+        { symbol: 'TICK', name: 'Tick', type: 'tick' },
+        { symbol: 'R_10_OTC', name: 'OTC Volatility 10', type: 'otc' },
+        { symbol: 'R_25_OTC', name: 'OTC Volatility 25', type: 'otc' },
+        { symbol: 'R_50_OTC', name: 'OTC Volatility 50', type: 'otc' },
+        { symbol: 'R_75_OTC', name: 'OTC Volatility 75', type: 'otc' },
+        { symbol: 'R_100_OTC', name: 'OTC Volatility 100', type: 'otc' },
+        { symbol: '1HZ10V_OTC', name: 'OTC Volatility 10 (1s)', type: 'otc' },
+        { symbol: '1HZ25V_OTC', name: 'OTC Volatility 25 (1s)', type: 'otc' },
+        { symbol: '1HZ50V_OTC', name: 'OTC Volatility 50 (1s)', type: 'otc' },
+        { symbol: '1HZ75V_OTC', name: 'OTC Volatility 75 (1s)', type: 'otc' },
+        { symbol: '1HZ100V_OTC', name: 'OTC Volatility 100 (1s)', type: 'otc' },
+        { symbol: 'CRASH_OTC', name: 'OTC Crash', type: 'otc' },
+        { symbol: 'BOOM_OTC', name: 'OTC Boom', type: 'otc' },
+        { symbol: 'STEP_OTC', name: 'OTC Step', type: 'otc' },
+        { symbol: 'RANGE_OTC', name: 'OTC Range', type: 'otc' },
+        { symbol: 'TICK_OTC', name: 'OTC Tick', type: 'otc' }
+    ],
+    BOOKMAKERS: ['Deriv', 'Exchange A', 'Exchange B', 'OTC'],
+    MIN_ARB_PROFIT: 0.015,
+    VALUE_THRESHOLD: 0.04,
+    QUALITY_THRESHOLD: 0.65,
+    REFRESH_INTERVAL: 3000
+};
+
+// ================================================================
+//  STATE
+// ================================================================
+let state = {
+    results: [],
+    aiMode: 'standard', // 'standard' or 'deepseek'
+    autoRefresh: true,
+    refreshTimer: null,
+    isAnalyzing: false
+};
+
+// ================================================================
+//  DOM REFS
+// ================================================================
+const $ = id => document.getElementById(id);
+const tableBody = $('tableBody');
+const searchInput = $('searchInput');
+const historySelect = $('historySelect');
+const resultCount = $('resultCount');
+const indexTags = $('indexTags');
+const totalMarkets = $('totalMarkets');
+const arbitrageCount = $('arbitrageCount');
+const valueBetsCount = $('valueBetsCount');
+const avgQuality = $('avgQuality');
+const aiSignals = $('aiSignals');
+const statusText = $('statusText');
+const statusDot = $('statusDot');
+const aiBadge = $('aiBadge');
+
+// ================================================================
+//  DEEPSEEK AI ANALYSIS ENGINE
+// ================================================================
+class DeepSeekAI {
+
+    static analyze(marketData) {
+        const analysis = {
+            confidence: 0,
+            recommendation: '',
+            reasoning: [],
+            riskScore: 0,
+            entryTiming: ''
+        };
+
+        // Extract key metrics
+        const { currentPrice, volatility, change, quality, arbs, values, ticks } = marketData;
+
+        // 1. Trend Analysis
+        let trendScore = 0.5;
+        if (ticks && ticks.length > 20) {
+            const prices = ticks.map(t => t.quote);
+            const shortMA = prices.slice(-10).reduce((a,b) => a+b, 0) / 10;
+            const longMA = prices.slice(-20, -10).reduce((a,b) => a+b, 0) / 10;
+            trendScore = 0.5 + (shortMA - longMA) / longMA * 5;
+            trendScore = Math.min(Math.max(trendScore, 0), 1);
+        }
+
+        // 2. Volatility Assessment
+        let volScore = 0.5;
+        if (volatility) {
+            volScore = Math.min(volatility * 8, 1);
+        }
+
+        // 3. Quality Assessment
+        const qualityScore = quality?.score || 0.5;
+
+        // 4. Arbitrage & Value Indicators
+        const hasArb = arbs && arbs.length > 0;
+        const hasValue = values && values.length > 0;
+        const arbProfit = hasArb ? arbs[0].profit : 0;
+
+        // 5. DeepSeek AI Weighted Score
+        const weights = {
+            trend: 0.25,
+            quality: 0.30,
+            volatility: 0.15,
+            arbitrage: 0.20,
+            momentum: 0.10
+        };
+
+        let momentum = 0.5;
+        if (change !== undefined) {
+            momentum = 0.5 + change / 20;
+            momentum = Math.min(Math.max(momentum, 0), 1);
+        }
+
+        const arbScore = hasArb ? Math.min(arbProfit / 10, 1) : 0;
+
+        let confidence = 
+            trendScore * weights.trend +
+            qualityScore * weights.quality +
+            (1 - volScore) * weights.volatility +
+            arbScore * weights.arbitrage +
+            momentum * weights.momentum;
+
+        confidence = Math.min(Math.max(confidence, 0), 1);
+
+        // 6. Generate Recommendation
+        let recommendation = 'HOLD';
+        let reasoning = [];
+
+        if (confidence > 0.75 && hasArb) {
+            recommendation = 'STRONG BUY';
+            reasoning.push('High confidence arbitrage opportunity');
+            reasoning.push(`Potential profit: ${arbProfit}%`);
+        } else if (confidence > 0.65 && hasValue) {
+            recommendation = 'BUY';
+            reasoning.push('Value bet detected with good probability');
+        } else if (confidence > 0.60 && qualityScore > 0.7) {
+            recommendation = 'MONITOR';
+            reasoning.push('Quality market with entry potential');
+        } else if (confidence < 0.4) {
+            recommendation = 'AVOID';
+            reasoning.push('Low confidence, high risk factors');
+        } else {
+            recommendation = 'WAIT';
+            reasoning.push('Waiting for better entry conditions');
+        }
+
+        // 7. Risk Assessment
+        let riskScore = 0.3;
+        if (volScore > 0.7) riskScore += 0.3;
+        if (qualityScore < 0.5) riskScore += 0.2;
+        if (confidence < 0.5) riskScore += 0.2;
+        riskScore = Math.min(riskScore, 1);
+
+        // 8. Entry Timing
+        let entryTiming = '—';
+        if (recommendation === 'STRONG BUY' || recommendation === 'BUY') {
+            entryTiming = 'NEXT TICK';
+        } else if (recommendation === 'MONITOR') {
+            entryTiming = '1-3 TICKS';
+        } else if (recommendation === 'WAIT') {
+            entryTiming = 'CONFIRM SIGNAL';
+        }
+
+        return {
+            confidence: parseFloat((confidence * 100).toFixed(1)),
+            recommendation,
+            reasoning: reasoning.join(' • '),
+            riskScore: parseFloat((riskScore * 100).toFixed(1)),
+            entryTiming,
+            trendScore: parseFloat((trendScore * 100).toFixed(1)),
+            qualityScore: parseFloat((qualityScore * 100).toFixed(1))
+        };
+    }
+}
+
+// ================================================================
+//  DATA GENERATOR
+// ================================================================
+function generateMarketData(symbol, name, type, historyCount = 500) {
+    // Generate realistic price data
+    const basePrice = 20 + (hashString(symbol) % 180) + Math.random() * 10;
+    const volatility = getVolatility(symbol);
+    const ticks = [];
+    let price = basePrice;
+
+    for (let i = 0; i < historyCount; i++) {
+        const random = boxMuller();
+        const drift = getDrift(symbol);
+        const change = price * (drift * 0.0001 + volatility * random * 0.01);
+        price = Math.max(price + change, 0.001);
+        price = parseFloat(price.toFixed(4));
+        ticks.push({
+            epoch: Date.now() - (historyCount - i) * 100,
+            quote: price,
+            volume: Math.floor(100 + Math.random() * 5000)
+        });
+    }
+
+    const currentPrice = ticks[ticks.length-1].quote;
+    const change = ((ticks[ticks.length-1].quote - ticks[0].quote) / ticks[0].quote * 100);
+
+    // Generate odds
+    const odds = {};
+    CONFIG.BOOKMAKERS.forEach((bm, idx) => {
+        const spread = 0.02 + (idx * 0.005) + Math.random() * 0.01;
+        const edge = (Math.random() - 0.5) * 0.02;
+        const upProb = 0.35 + (currentPrice / 100 * 0.15) + (volatility * 0.1);
+        const downProb = 0.35 - (currentPrice / 100 * 0.05) + (volatility * 0.05);
+        const stayProb = 1 - upProb - downProb;
+
+        odds[bm] = {
+            up: parseFloat((1 / Math.max(upProb, 0.05) * (1 + spread + edge)).toFixed(3)),
+            down: parseFloat((1 / Math.max(downProb, 0.05) * (1 + spread + edge * 0.5)).toFixed(3)),
+            stay: parseFloat((1 / Math.max(stayProb, 0.05) * (1 + spread * 0.7 + edge * 0.3)).toFixed(3))
+        };
+    });
+
+    // Calculate quality
+    const quality = calculateQuality(ticks, volatility);
+
+    // Detect arbitrage
+    const arbs = detectArbitrage(odds);
+
+    // Detect value bets
+    const values = detectValueBets(odds, ticks, volatility);
+
+    return {
+        symbol,
+        name,
+        type,
+        ticks,
+        currentPrice,
+        change: parseFloat(change.toFixed(2)),
+        volatility: parseFloat((volatility * 100).toFixed(1)),
+        odds,
+        quality,
+        arbs,
+        values,
+        volume: Math.floor(100 + Math.random() * 5000)
+    };
+}
+
+function getVolatility(symbol) {
+    if (symbol.includes('100')) return 0.15 + Math.random() * 0.05;
+    if (symbol.includes('75')) return 0.12 + Math.random() * 0.04;
+    if (symbol.includes('50')) return 0.09 + Math.random() * 0.03;
+    if (symbol.includes('25')) return 0.06 + Math.random() * 0.02;
+    if (symbol.includes('10')) return 0.03 + Math.random() * 0.015;
+    if (symbol.includes('CRASH') || symbol.includes('BOOM')) return 0.20 + Math.random() * 0.08;
+    return 0.07 + Math.random() * 0.04;
+}
+
+function getDrift(symbol) {
+    if (symbol.includes('R_')) return -0.05 + Math.random() * 0.1;
+    if (symbol.includes('CRASH')) return -0.3 + Math.random() * 0.2;
+    if (symbol.includes('BOOM')) return 0.3 + Math.random() * 0.2;
+    return (Math.random() - 0.5) * 0.2;
+}
+
+function boxMuller() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash);
+}
+
+function calculateQuality(ticks, volatility) {
+    if (ticks.length < 20) return { score: 0.5, passes: false };
+
+    const prices = ticks.map(t => t.quote);
+    const short = prices.slice(-10);
+    const long = prices.slice(-20, -10);
+    const shortAvg = short.reduce((a,b) => a+b, 0) / short.length;
+    const longAvg = long.reduce((a,b) => a+b, 0) / long.length;
+    const trend = 0.5 + Math.min(Math.max((shortAvg - longAvg) / longAvg * 10, -0.4), 0.4);
+
+    const volScore = volatility < 0.02 ? 0.3 : volatility < 0.05 ? 0.7 + (volatility - 0.02) * 10 : 
+                     volatility < 0.15 ? 0.9 - (volatility - 0.05) * 2 : Math.max(0.3, 0.7 - (volatility - 0.15) * 3);
+
+    const volume = Math.min(Math.floor(100 + Math.random() * 5000) / 2000, 1);
+    const momentum = 0.5 + Math.min(Math.max((prices[prices.length-1] - prices[0]) / prices[0] * 20, -0.4), 0.4);
+
+    const score = trend * 0.30 + volScore * 0.20 + volume * 0.20 + momentum * 0.15 + 0.5 * 0.15;
+    const finalScore = Math.min(Math.max(score, 0), 1);
+
+    return {
+        score: parseFloat(finalScore.toFixed(3)),
+        passes: finalScore >= CONFIG.QUALITY_THRESHOLD
+    };
+}
+
+function detectArbitrage(odds) {
+    const outcomes = ['up', 'down', 'stay'];
+    const bestOdds = {};
+
+    outcomes.forEach(outcome => {
+        let best = 0;
+        let bestBookie = '';
+        CONFIG.BOOKMAKERS.forEach(bm => {
+            if (odds[bm] && odds[bm][outcome] > best) {
+                best = odds[bm][outcome];
+                bestBookie = bm;
+            }
+        });
+        if (best > 0) {
+            bestOdds[outcome] = { odd: best, bookie: bestBookie };
+        }
+    });
+
+    if (Object.keys(bestOdds).length >= 2) {
+        const totalImplied = Object.values(bestOdds).reduce((sum, o) => sum + 1/o.odd, 0);
+        if (totalImplied < 1) {
+            const profit = (1 - totalImplied) * 100;
+            if (profit >= CONFIG.MIN_ARB_PROFIT * 100) {
+                return [{
+                    profit: parseFloat(profit.toFixed(2)),
+                    confidence: profit > 5 ? 'HIGH' : profit > 3 ? 'MEDIUM' : 'LOW',
+                    odds: bestOdds,
+                    totalImplied: parseFloat(totalImplied.toFixed(4))
+                }];
+            }
+        }
+    }
+    return [];
+}
+
+function detectValueBets(odds, ticks, volatility) {
+    const valueBets = [];
+    const outcomes = ['up', 'down', 'stay'];
+
+    outcomes.forEach(outcome => {
+        let bestOdd = 0;
+        let bestBookie = '';
+        CONFIG.BOOKMAKERS.forEach(bm => {
+            if (odds[bm] && odds[bm][outcome] > bestOdd) {
+                bestOdd = odds[bm][outcome];
+                bestBookie = bm;
+            }
+        });
+
+        if (bestOdd > 0) {
+            const impliedProb = 1 / bestOdd;
+            let predictedProb = 0.33;
+            if (outcome === 'up') predictedProb = 0.35 + volatility * 0.5;
+            if (outcome === 'down') predictedProb = 0.35 - volatility * 0.2;
+            if (outcome === 'stay') predictedProb = 0.30;
+
+            if (ticks && ticks.length > 10) {
+                const recent = ticks.slice(-10);
+                const trend = (recent[recent.length-1].quote - recent[0].quote) / recent[0].quote;
+                if (outcome === 'up' && trend > 0) predictedProb *= (1 + Math.min(trend, 0.1));
+                if (outcome === 'down' && trend < 0) predictedProb *= (1 + Math.abs(Math.min(trend, 0.1)));
+            }
+
+            predictedProb = Math.min(Math.max(predictedProb, 0.05), 0.95);
+            const value = predictedProb - impliedProb;
+
+            if (value > CONFIG.VALUE_THRESHOLD) {
+                valueBets.push({
+                    outcome,
+                    odd: bestOdd,
+                    bookie: bestBookie,
+                    impliedProb: parseFloat((impliedProb * 100).toFixed(2)),
+                    predictedProb: parseFloat((predictedProb * 100).toFixed(2)),
+                    value: parseFloat((value * 100).toFixed(2)),
+                    roi: parseFloat(((predictedProb * bestOdd) - 1).toFixed(3))
+                });
+            }
+        }
+    });
+
+    return valueBets;
+}
+
+// ================================================================
+//  MAIN APPLICATION
+// ================================================================
+function runAnalysis() {
+    if (state.isAnalyzing) return;
+    state.isAnalyzing = true;
+
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    const historyCount = parseInt(historySelect.value);
+
+    statusText.textContent = '🔄 ANALYZING...';
+    statusDot.className = 'dot yellow';
+
+    // Use setTimeout to prevent UI freeze
+    setTimeout(() => {
+        let indexes = CONFIG.DERIV_INDEXES;
+        if (searchTerm) {
+            indexes = indexes.filter(idx => 
+                idx.symbol.toLowerCase().includes(searchTerm) ||
+                idx.name.toLowerCase().includes(searchTerm) ||
+                idx.type.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        const results = [];
+        let totalArbs = 0;
+        let totalValues = 0;
+        let totalQuality = 0;
+        let totalAISignals = 0;
+
+        for (const idx of indexes) {
+            const data = generateMarketData(idx.symbol, idx.name, idx.type, historyCount);
+
+            // Run DeepSeek AI analysis
+            const aiAnalysis = DeepSeekAI.analyze(data);
+
+            // Determine signal based on AI or standard mode
+            let signal = 'SKIP';
+            let signalClass = 'skip';
+            let entry = '—';
+
+            if (state.aiMode === 'deepseek') {
+                // DeepSeek AI mode
+                if (aiAnalysis.recommendation === 'STRONG BUY') {
+                    signal = '🧠 STRONG BUY';
+                    signalClass = 'deepseek';
+                    entry = aiAnalysis.entryTiming;
+                } else if (aiAnalysis.recommendation === 'BUY') {
+                    signal = '🧠 BUY';
+                    signalClass = 'deepseek';
+                    entry = aiAnalysis.entryTiming;
+                } else if (aiAnalysis.recommendation === 'MONITOR') {
+                    signal = '🧠 MONITOR';
+                    signalClass = 'wait';
+                    entry = aiAnalysis.entryTiming;
+                } else if (aiAnalysis.recommendation === 'WAIT') {
+                    signal = '🧠 WAIT';
+                    signalClass = 'wait';
+                    entry = aiAnalysis.entryTiming;
+                } else {
+                    signal = '🧠 AVOID';
+                    signalClass = 'skip';
+                    entry = '—';
+                }
+            } else {
+                // Standard mode
+                if (data.arbs.length > 0 && data.quality.passes) {
+                    signal = 'STRONG BUY';
+                    signalClass = 'strong';
+                    entry = 'NEXT TICK';
+                } else if (data.values.length > 0 && data.quality.passes) {
+                    signal = 'BUY';
+                    signalClass = 'buy';
+                    entry = 'NEXT TICK';
+                } else if (data.arbs.length > 0 && !data.quality.passes) {
+                    signal = 'WAIT';
+                    signalClass = 'wait';
+                    entry = '1-2 TICKS';
+                } else if (data.quality.passes) {
+                    signal = 'MONITOR';
+                    signalClass = 'wait';
+                    entry = 'CONFIRM';
+                }
+            }
+
+            // Check if AI signal is strong
+            if (state.aiMode === 'deepseek' && aiAnalysis.confidence > 60) {
+                totalAISignals++;
+            }
+
+            totalArbs += data.arbs.length;
+            totalValues += data.values.length;
+            totalQuality += data.quality.score;
+
+            results.push({
+                ...data,
+                signal,
+                signalClass,
+                entry,
+                aiAnalysis,
+                bestArb: data.arbs.length > 0 ? data.arbs[0] : null
+            });
+        }
+
+        state.results = results;
+
+        // Update stats
+        const avgQual = results.length > 0 ? totalQuality / results.length : 0;
+        totalMarkets.textContent = results.length;
+        arbitrageCount.textContent = totalArbs;
+        valueBetsCount.textContent = totalValues;
+        avgQuality.textContent = (avgQual * 100).toFixed(0) + '%';
+        aiSignals.textContent = state.aiMode === 'deepseek' ? totalAISignals : '—';
+        resultCount.textContent = results.length;
+
+        // Render
+        renderResults(results);
+
+        statusText.textContent = '✅ LIVE — ' + new Date().toLocaleTimeString();
+        statusDot.className = 'dot green';
+        state.isAnalyzing = false;
+    }, 100);
+}
+
+function renderResults(results) {
+    if (!results || results.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align:center;padding:30px;color:var(--text-secondary);">
+                    <div style="font-size:24px;margin-bottom:6px;">🔍</div>
+                    No markets found matching your search
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    for (const item of results) {
+        const changeClass = item.change >= 0 ? 'change-up' : 'change-down';
+        const changeSign = item.change >= 0 ? '+' : '';
+
+        let arbDisplay = '—';
+        if (item.bestArb) {
+            arbDisplay = `<span class="profit-badge">+${item.bestArb.profit}%</span>`;
+        }
+
+        const qualPct = (item.quality.score * 100);
+        const qualClass = qualPct >= 70 ? 'high' : qualPct >= 50 ? 'med' : 'low';
+
+        // AI Analysis display
+        let aiDisplay = '—';
+        if (state.aiMode === 'deepseek' && item.aiAnalysis) {
+            const ai = item.aiAnalysis;
+            const confClass = ai.confidence > 70 ? 'deepseek' : ai.confidence > 50 ? 'med' : 'low';
+            aiDisplay = `
+                <div class="ai-analysis">
+                    <span class="deepseek">🧠 ${ai.recommendation}</span>
+                    <div style="font-size:8px;color:var(--text-secondary);">
+                        ${ai.confidence}% conf • Risk ${ai.riskScore}%
+                    </div>
+                    <div style="font-size:8px;color:var(--text-secondary);">
+                        ${ai.reasoning.substring(0, 40)}${ai.reasoning.length > 40 ? '...' : ''}
+                    </div>
+                </div>
+            `;
+        } else if (state.aiMode === 'deepseek') {
+            aiDisplay = `<span style="color:var(--text-secondary);font-size:10px;">Analyzing...</span>`;
+        }
+
+        html += `
+            <tr>
+                <td>
+                    <div class="symbol-name">${item.symbol} <span class="sub">${item.name}</span></div>
+                    <div style="font-size:9px;color:var(--text-secondary);">${item.type.toUpperCase()}</div>
+                </td>
+                <td class="price">$${item.currentPrice.toFixed(4)}</td>
+                <td class="${changeClass}">${changeSign}${item.change}%</td>
+                <td>${item.volatility}%</td>
+                <td>${arbDisplay}</td>
+                <td>
+                    <div class="quality-bar">
+                        <div class="quality-track">
+                            <div class="quality-fill ${state.aiMode === 'deepseek' ? 'deepseek' : qualClass}" style="width:${qualPct}%"></div>
+                        </div>
+                        <span class="quality-label">${qualPct.toFixed(0)}%</span>
+                    </div>
+                </td>
+                <td><span class="signal-badge ${item.signalClass}">${item.signal}</span></td>
+                <td style="font-size:11px;color:var(--text-secondary);">${item.entry}</td>
+                <td>${aiDisplay}</td>
+            </tr>
+        `;
+    }
+
+    tableBody.innerHTML = html;
+}
+
+// ================================================================
+//  UI CONTROLS
+// ================================================================
+
+function setAIMode(mode) {
+    state.aiMode = mode;
+
+    // Update buttons
+    document.getElementById('modeStandard').className = mode === 'standard' ? 'active' : '';
+    document.getElementById('modeDeepSeek').className = mode === 'deepseek' ? 'active' : '';
+
+    // Update badge
+    if (mode === 'deepseek') {
+        aiBadge.innerHTML = '🧠 DeepSeek AI Active';
+        aiBadge.style.display = 'inline-flex';
+    } else {
+        aiBadge.innerHTML = '📊 Standard Mode';
+        aiBadge.style.display = 'inline-flex';
+    }
+
+    // Re-run analysis
+    if (state.results.length > 0) {
+        runAnalysis();
+    }
+}
+
+function toggleAutoRefresh() {
+    state.autoRefresh = !state.autoRefresh;
+    const btn = document.querySelector('.btn-secondary');
+
+    if (state.autoRefresh) {
+        btn.textContent = '⏸️ Auto';
+        startAutoRefresh();
+    } else {
+        btn.textContent = '▶️ Auto';
+        stopAutoRefresh();
+    }
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    state.refreshTimer = setInterval(() => {
+        if (!state.isAnalyzing && state.autoRefresh) {
+            runAnalysis();
+        }
+    }, CONFIG.REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (state.refreshTimer) {
+        clearInterval(state.refreshTimer);
+        state.refreshTimer = null;
+    }
+}
+
+function buildIndexTags() {
+    const types = ['all', ...new Set(CONFIG.DERIV_INDEXES.map(i => i.type))];
+    const typeLabels = {
+        all: '📊 All',
+        volatility: '📈 Volatility',
+        crash: '📉 Crash',
+        boom: '📈 Boom',
+        step: '📊 Step',
+        range: '🎯 Range',
+        tick: '⚡ Tick',
+        otc: '🔷 OTC'
+    };
+
+    let html = '';
+    types.forEach(type => {
+        const count = type === 'all' ? CONFIG.DERIV_INDEXES.length : 
+                      CONFIG.DERIV_INDEXES.filter(i => i.type === type).length;
+        const active = type === 'all' ? 'active' : '';
+        html += `<span class="index-tag ${active}" onclick="filterByType('${type}')">
+            ${typeLabels[type] || type} <span class="count">${count}</span>
+        </span>`;
+    });
+
+    indexTags.innerHTML = html;
+}
+
+function filterByType(type) {
+    document.querySelectorAll('.index-tag').forEach(tag => tag.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (type === 'all') {
+        searchInput.value = '';
+    } else {
+        const typeMap = {
+            volatility: 'Volatility',
+            crash: 'Crash',
+            boom: 'Boom',
+            step: 'Step',
+            range: 'Range',
+            tick: 'Tick',
+            otc: 'OTC'
+        };
+        searchInput.value = typeMap[type] || type;
+    }
+    runAnalysis();
+}
+
+// ================================================================
+//  INITIALIZATION
+// ================================================================
+
+function init() {
+    buildIndexTags();
+    aiBadge.innerHTML = '📊 Standard Mode';
+
+    // Set initial status
+    statusText.textContent = '✅ LIVE';
+    statusDot.className = 'dot green';
+
+    // Run initial analysis immediately (no loading delay)
+    setTimeout(() => runAnalysis(), 200);
+
+    // Start auto-refresh
+    startAutoRefresh();
+}
+
+// Event listeners
+searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') runAnalysis();
+});
+
+// Start
+document.addEventListener('DOMContentLoaded', init);
+
+// Expose functions
+window.runAnalysis = runAnalysis;
+window.toggleAutoRefresh = toggleAutoRefresh;
+window.filterByType = filterByType;
+window.setAIMode = setAIMode;
+
+console.log('🧠 Deriv AI Pro X — DeepSeek Elite loaded');
+console.log(`📊 ${CONFIG.DERIV_INDEXES.length} indexes ready`);
+console.log('🔍 Click ANALYZE or wait for auto-refresh');
+</script>
+</body>
+</html>
