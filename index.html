@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Is It Actually Random? — Deriv Digit Analyzer</title>
+<style>
+  :root {
+    --bg: #10131a;
+    --panel: #171b24;
+    --panel-border: #262b37;
+    --text: #e8eaef;
+    --text-dim: #8890a0;
+    --teal: #56d6c2;
+    --amber: #e8a33d;
+    --line: rgba(255,255,255,0.28);
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    padding: 28px 18px 70px;
+  }
+  .page { max-width: 640px; margin: 0 auto; }
+
+  h1 { font-size: 1.65rem; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-dim); font-size: 0.95rem; margin: 0 0 24px; max-width: 46ch; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 0 0 10px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field label { font-size: 0.82rem; color: var(--text-dim); }
+  .field .opt { font-weight: 400; color: var(--text-dim); }
+  select, input[type="text"] {
+    background: #0d1016;
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    border-radius: 7px;
+    width: 100%;
+  }
+  select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+  .live-fields[hidden] { display: none; }
+
+  button#runBtn {
+    width: 100%;
+    background: var(--teal);
+    color: #0a1512;
+    border: none;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 13px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  button#runBtn:active { transform: translateY(1px); }
+  button#runBtn:disabled { opacity: 0.6; cursor: default; }
+
+  .secondary-btn {
+    width: 100%;
+    background: transparent;
+    color: var(--teal);
+    border: 1px solid var(--panel-border);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    min-height: 1.4em;
+    margin: 10px 0 0;
+  }
+
+  .note p { margin: 0 0 10px; font-size: 0.92rem; }
+  .note p:last-child { margin-bottom: 0; }
+  details summary { cursor: pointer; color: var(--teal); font-size: 0.9rem; margin-top: 4px; }
+  details p { margin-top: 10px; color: var(--text-dim); font-size: 0.88rem; }
+
+  #results { opacity: 0; transform: translateY(8px); transition: opacity 0.4s ease, transform 0.4s ease; }
+  #results.visible { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { #results { transition: none; } }
+
+  .meta { font-family: var(--mono); font-size: 0.78rem; color: var(--text-dim); margin: -4px 0 16px; }
+  .hint { font-size: 0.85rem; color: var(--text-dim); margin: -4px 0 14px; }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 150px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+  .bar-track { position: relative; width: 100%; flex: 1; }
+  .bar-fill { position: absolute; bottom: 0; left: 2px; right: 2px; border-radius: 3px 3px 0 0; transition: height 0.5s ease; }
+  .bar-baseline { position: absolute; left: -2px; right: -2px; border-top: 1px dashed var(--line); }
+  .bar-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; }
+  .bar-value { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); }
+  .legend { display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-dim); margin-top:10px; flex-wrap: wrap; }
+  .legend .swatch { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  .stat-line { font-size: 0.92rem; margin-bottom: 10px; }
+  .stat-line:last-child { margin-bottom: 0; }
+  .stat-mono { font-family: var(--mono); }
+
+  .heatmap-wrap { overflow-x: auto; }
+  table.heatmap-table { border-collapse: collapse; font-family: var(--mono); font-size: 0.7rem; }
+  table.heatmap-table td { width: 26px; height: 22px; text-align: center; color: #0a1512; }
+  table.heatmap-table th { width: 26px; height: 22px; text-align: center; color: var(--text-dim); background: transparent; font-weight: 400; }
+
+  table#backtestTable { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  table#backtestTable th { text-align: left; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); font-weight: 400; padding-bottom: 8px; border-bottom: 1px solid var(--panel-border); }
+  table#backtestTable td { padding: 10px 6px 10px 0; border-bottom: 1px solid var(--panel-border); vertical-align: top; }
+  table#backtestTable tr:last-child td { border-bottom: none; }
+  .p-note { display: block; font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+  .verdict-flag { color: var(--amber); font-weight: 600; }
+  .verdict-ok { color: var(--text-dim); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .pred-card { background: #0d1016; border: 1px solid var(--panel-border); border-radius: 8px; padding: 14px 10px; text-align: center; }
+  .pred-strategy { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+  .pred-digit { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--teal); line-height: 1; }
+  .pred-acc { font-size: 0.72rem; color: var(--text-dim); margin-top: 6px; }
+
+  footer { margin-top: 26px; font-size: 0.78rem; color: var(--text-dim); border-top: 1px solid var(--panel-border); padding-top: 16px; }
+  footer p { margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Is it actually random?</h1>
+  <p class="subtitle">Pulls Deriv's synthetic-index tick digits and runs the statistical tests that would catch a real pattern — instead of assuming one exists.</p>
+
+  <div class="panel controls">
+    <div class="field">
+      <label for="mode">Mode</label>
+      <select id="mode">
+        <option value="demo" selected>Demo — simulated random ticks, instant</option>
+        <option value="live">Live — real Deriv tick history</option>
+      </select>
+    </div>
+
+    <div id="liveFields" class="live-fields" hidden>
+      <div class="field">
+        <label for="symbol">Symbol</label>
+        <select id="symbol">
+          <option value="R_10">Volatility 10</option>
+          <option value="R_25">Volatility 25</option>
+          <option value="R_50">Volatility 50</option>
+          <option value="R_75">Volatility 75</option>
+          <option value="R_100" selected>Volatility 100</option>
+          <option value="1HZ10V">Volatility 10 (1s)</option>
+          <option value="1HZ25V">Volatility 25 (1s)</option>
+          <option value="1HZ50V">Volatility 50 (1s)</option>
+          <option value="1HZ75V">Volatility 75 (1s)</option>
+          <option value="1HZ100V">Volatility 100 (1s)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="appId">App ID <span class="opt">(optional)</span></label>
+        <input id="appId" type="text" inputmode="numeric" placeholder="1089 — Deriv's public test ID">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="count">Ticks to analyze</label>
+      <select id="count">
+        <option value="1000">1,000</option>
+        <option value="3000" selected>3,000</option>
+        <option value="5000">5,000</option>
+        <option value="10000">10,000</option>
+      </select>
+    </div>
+
+    <button id="runBtn" type="button">Run analysis</button>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="panel note">
+    <p><strong>Before you trust any number below:</strong> this is a statistics instrument, not a betting signal. Deriv's synthetic indices run on a random-number generator, so the honest result is usually "no pattern found" — that's a working test doing its job, not a failed one.</p>
+    <details>
+      <summary>Why can't a predictor just work here?</summary>
+      <p>Each tick's last digit is close to an independent, uniform draw from 0–9. Because it doesn't depend on the digits before it, there's no historical pattern to learn from — the same reason no system beats roulette long-term. Every strategy below is backtested and scored against exactly that fact, so if one clears a "possible edge" bar, treat it as a lead to re-test on fresh data, not as proof.</p>
+    </details>
+  </div>
+
+  <div id="results" hidden>
+    <p class="meta" id="reportMeta"></p>
+
+    <div class="panel">
+      <p class="eyebrow">Digit frequency</p>
+      <p class="hint">Expect close to 10% each — the dashed line — if the source is uniform random.</p>
+      <div id="freqChart" class="bar-chart"></div>
+      <div class="legend"><span class="swatch" style="background:var(--teal)"></span> near baseline <span class="swatch" style="background:var(--amber)"></span> further from baseline</div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">Randomness tests</p>
+      <div id="chiResult" class="stat-line"></div>
+      <div id="runsResult" class="stat-line"></div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">Transition matrix</p>
+      <p class="hint">P(next digit | current digit). Rows should look flat if the source has no memory.</p>
+      <div id="heatmap" class="heatmap-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">Backtested strategies</p>
+      <p class="hint">Matches baseline 10% · Differs baseline 90%. A single "possible edge" among three strategies is expected by chance sometimes — it isn't proof.</p>
+      <table id="backtestTable">
+        <thead><tr><th>Strategy</th><th>Matches</th><th>Differs</th><th>Verdict</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <p class="eyebrow">Next-digit call</p>
+      <div id="predictionCards" class="cards"></div>
+      <button id="downloadBtn" type="button" class="secondary-btn">Download full report (JSON)</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Digit-contract trades resolve in seconds and the house keeps an edge regardless of which digit you pick. If it stops being fun, or you catch yourself chasing losses: GamCare (UK) +44 808 8020 133, or begambleaware.org.</p>
+    <p>This page is a client-side port of a fuller Python toolkit (chi-square, runs test, Markov chain, plus a machine-learning strategy and a real binomial test) for anyone who wants to go deeper than a browser tab allows.</p>
+  </footer>
+
+</div>
+
+<script>
+/* ---------- math helpers ---------- */
+
+function erf(x) {
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1) * t * Math.exp(-x*x);
+  return sign * y;
+}
+function normalCDF(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+
+function logGamma(x) {
+  const cof = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+    -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let y = x, tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) { y += 1; ser += cof[j] / y; }
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+function gammaSeries(a, x) {
+  let sum = 1 / a, del = sum, ap = a;
+  for (let n = 0; n < 200; n++) {
+    ap += 1; del *= x / ap; sum += del;
+    if (Math.abs(del) < Math.abs(sum) * 1e-12) break;
+  }
+  return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+}
+function gammaContinuedFraction(a, x) {
+  const FPMIN = 1e-300;
+  let b = x + 1 - a, c = 1 / FPMIN, d = 1 / b, h = d;
+  for (let i = 1; i <= 200; i++) {
+    const an = -i * (i - a);
+    b += 2;
+    d = an * d + b; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = b + an / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d;
+    const delta = d * c;
+    h *= delta;
+    if (Math.abs(delta - 1) < 1e-12) break;
+  }
+  return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+}
+function regularizedLowerGamma(a, x) {
+  if (x <= 0 || a <= 0) return 0;
+  if (x < a + 1) return gammaSeries(a, x);
+  return 1 - gammaContinuedFraction(a, x);
+}
+function chiSquarePValue(chi2, df) {
+  if (chi2 <= 0) return 1;
+  return 1 - regularizedLowerGamma(df / 2, chi2 / 2);
+}
+function twoSidedZPValue(count, n, p0) {
+  const se = Math.sqrt(n * p0 * (1 - p0));
+  if (se === 0) return 1;
+  const z = (count - n * p0) / se;
+  return 2 * (1 - normalCDF(Math.abs(z)));
+}
+
+/* ---------- statistics ---------- */
+
+function digitFrequency(digits) {
+  const counts = new Array(10).fill(0);
+  digits.forEach(d => counts[d]++);
+  const n = digits.length || 1;
+  const freq = {};
+  for (let d = 0; d < 10; d++) freq[d] = counts[d] / n * 100;
+  return freq;
+}
+function chiSquareUniformity(digits) {
+  const n = digits.length;
+  if (n === 0) return { chi2: 0, p: 1 };
+  const counts = new Array(10).fill(0);
+  digits.forEach(d => counts[d]++);
+  const expected = n / 10;
+  const chi2 = counts.reduce((sum, o) => sum + ((o - expected) ** 2) / expected, 0);
+  return { chi2, p: chiSquarePValue(chi2, 9) };
+}
+function transitionMatrix(digits) {
+  const m = Array.from({ length: 10 }, () => new Array(10).fill(0));
+  for (let i = 0; i < digits.length - 1; i++) m[digits[i]][digits[i + 1]]++;
+  return m.map(row => {
+    const sum = row.reduce((a, b) => a + b, 0) || 1;
+    return row.map(v => v / sum);
+  });
+}
+function runsTest(binary) {
+  const n = binary.length;
+  if (n < 2) return { z: 0, p: 1 };
+  const n1 = binary.reduce((a, b) => a + b, 0);
+  const n0 = n - n1;
+  if (n1 === 0 || n0 === 0) return { z: 0, p: 1 };
+  let runs = 1;
+  for (let i = 1; i < n; i++) if (binary[i] !== binary[i - 1]) runs++;
+  const runsExp = (2 * n1 * n0) / n + 1;
+  const denom = n * n * (n - 1);
+  if (denom === 0) return { z: 0, p: 1 };
+  const runsVar = (2 * n1 * n0 * (2 * n1 * n0 - n)) / denom;
+  if (runsVar <= 0) return { z: 0, p: 1 };
+  const z = (runs - runsExp) / Math.sqrt(runsVar);
+  return { z, p: 2 * (1 - normalCDF(Math.abs(z))) };
+}
+function countRunsFlagged(digits) {
+  let flagged = 0;
+  for (let d = 0; d < 10; d++) {
+    const binary = digits.map(x => (x === d ? 1 : 0));
+    if (runsTest(binary).p < 0.05) flagged++;
+  }
+  return flagged;
+}
+
+/* ---------- strategies ---------- */
+
+class FrequencyStrategy {
+  constructor(window = 50) { this.window = window; this.buf = []; }
+  predict() {
+    if (this.buf.length === 0) return Math.floor(Math.random() * 10);
+    const counts = new Array(10).fill(0);
+    this.buf.forEach(d => counts[d]++);
+    let best = 0;
+    for (let d = 1; d < 10; d++) if (counts[d] > counts[best]) best = d;
+    return best;
+  }
+  update(d) { this.buf.push(d); if (this.buf.length > this.window) this.buf.shift(); }
+}
+class ColdNumberStrategy {
+  constructor(window = 50) { this.window = window; this.buf = []; }
+  predict() {
+    const counts = new Array(10).fill(0);
+    this.buf.forEach(d => counts[d]++);
+    let best = 0;
+    for (let d = 1; d < 10; d++) if (counts[d] < counts[best]) best = d;
+    return best;
+  }
+  update(d) { this.buf.push(d); if (this.buf.length > this.window) this.buf.shift(); }
+}
+class MarkovStrategy {
+  constructor() { this.matrix = Array.from({ length: 10 }, () => new Array(10).fill(0)); this.last = null; }
+  predict() {
+    if (this.last === null) return Math.floor(Math.random() * 10);
+    const row = this.matrix[this.last];
+    const sum = row.reduce((a, b) => a + b, 0);
+    if (sum === 0) return Math.floor(Math.random() * 10);
+    let best = 0;
+    for (let d = 1; d < 10; d++) if (row[d] > row[best]) best = d;
+    return best;
+  }
+  update(d) { if (this.last !== null) this.matrix[this.last][d]++; this.last = d; }
+}
+
+/* ---------- backtesting ---------- */
+
+function backtest(strategy, digits, mode) {
+  const minHistory = 30;
+  let correct = 0, total = 0;
+  digits.forEach((actual, i) => {
+    if (i >= minHistory) {
+      const pred = strategy.predict();
+      const hit = mode === 'matches' ? pred === actual : pred !== actual;
+      if (hit) correct++;
+      total++;
+    }
+    strategy.update(actual);
+  });
+  const baseline = mode === 'matches' ? 0.10 : 0.90;
+  const accuracy = total ? correct / total : 0;
+  const p = total ? twoSidedZPValue(correct, total, baseline) : 1;
+  return { correct, total, accuracy, baseline, p, significant: p < 0.05 };
+}
+
+function analyzeDigits(digits) {
+  const freq = digitFrequency(digits);
+  const { chi2, p: chiP } = chiSquareUniformity(digits);
+  const matrix = transitionMatrix(digits);
+  const runsFlagged = countRunsFlagged(digits);
+
+  const defs = [
+    { name: 'Frequency (hot number)', make: () => new FrequencyStrategy(50) },
+    { name: 'Cold number', make: () => new ColdNumberStrategy(50) },
+    { name: 'Markov chain', make: () => new MarkovStrategy() },
+  ];
+
+  const results = defs.map(def => {
+    const matchStrat = def.make();
+    const matches = backtest(matchStrat, digits, 'matches');
+    const nextDigit = matchStrat.predict();
+    const differStrat = def.make();
+    const differs = backtest(differStrat, digits, 'differs');
+    return { name: def.name, matches, differs, nextDigit };
+  });
+
+  return { freq, chi2, chiP, matrix, runsFlagged, results, n: digits.length };
+}
+
+/* ---------- Deriv client ---------- */
+
+function lastDigit(price, pipSize) {
+  const decimals = pipSize > 0 ? Math.round(-Math.log10(pipSize)) : 2;
+  const scaled = Math.round(price * Math.pow(10, decimals));
+  return ((scaled % 10) + 10) % 10;
+}
+function simulateDigits(count) {
+  const digits = [];
+  for (let i = 0; i < count; i++) digits.push(Math.floor(Math.random() * 10));
+  return digits;
+}
+
+class DerivClient {
+  constructor(appId) { this.appId = appId || '1089'; this.ws = null; this.pending = new Map(); this.reqId = 1; }
+  connect() {
+    return new Promise((resolve, reject) => {
+      try {
+        this.ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${this.appId}`);
+      } catch (e) { reject(e); return; }
+      this.ws.onopen = () => resolve();
+      this.ws.onerror = () => reject(new Error('Could not reach Deriv (network/app ID?)'));
+      this.ws.onmessage = (event) => this._handle(JSON.parse(event.data));
+    });
+  }
+  _handle(msg) {
+    if (msg.req_id && this.pending.has(msg.req_id)) {
+      const { resolve, reject } = this.pending.get(msg.req_id);
+      this.pending.delete(msg.req_id);
+      if (msg.error) reject(new Error(msg.error.message || 'Deriv API error'));
+      else resolve(msg);
+    }
+  }
+  _send(payload) {
+    return new Promise((resolve, reject) => {
+      const req_id = this.reqId++;
+      this.pending.set(req_id, { resolve, reject });
+      this.ws.send(JSON.stringify({ ...payload, req_id }));
+      setTimeout(() => {
+        if (this.pending.has(req_id)) { this.pending.delete(req_id); reject(new Error('Request timed out')); }
+      }, 15000);
+    });
+  }
+  async getPipSize(symbol) {
+    const res = await this._send({ active_symbols: 'brief' });
+    const found = (res.active_symbols || []).find(s => s.symbol === symbol);
+    return found ? parseFloat(found.pip) : 0.01;
+  }
+  async getTickHistory(symbol, count) {
+    const res = await this._send({ ticks_history: symbol, adjust_start_time: 1, count, end: 'latest', start: 1, style: 'ticks' });
+    return res.history.prices;
+  }
+  close() { if (this.ws) this.ws.close(); }
+}
+
+/* ---------- rendering ---------- */
+
+function heatColor(pct) {
+  const t = Math.max(0, Math.min(1, Math.abs(pct - 10) / 20));
+  const teal = [86, 214, 194];
+  const amber = [232, 163, 61];
+  const r = Math.round(teal[0] + (amber[0] - teal[0]) * t);
+  const g = Math.round(teal[1] + (amber[1] - teal[1]) * t);
+  const b = Math.round(teal[2] + (amber[2] - teal[2]) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function renderFreqChart(freq) {
+  const container = document.getElementById('freqChart');
+  container.innerHTML = '';
+  const values = Object.values(freq);
+  const maxScale = Math.max(20, ...values.map(v => v * 1.15));
+  for (let d = 0; d < 10; d++) {
+    const pct = freq[d];
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    const heightPct = (pct / maxScale * 100).toFixed(1);
+    const basePct = (10 / maxScale * 100).toFixed(1);
+    col.innerHTML = `
+      <div class="bar-track">
+        <div class="bar-baseline" style="bottom:${basePct}%"></div>
+        <div class="bar-fill" style="height:${heightPct}%; background:${heatColor(pct)}"></div>
+      </div>
+      <div class="bar-label">${d}</div>
+      <div class="bar-value">${pct.toFixed(1)}%</div>
+    `;
+    container.appendChild(col);
+  }
+}
+function renderChiResult(chi2, p) {
+  const verdict = p >= 0.05 ? 'consistent with uniform randomness' : 'not uniform at 5% significance — worth a second look';
+  document.getElementById('chiResult').innerHTML =
+    `<strong>Chi-square uniformity:</strong> <span class="stat-mono">χ²=${chi2.toFixed(2)}, p=${p.toFixed(3)}</span> → ${verdict}`;
+}
+function renderRunsResult(flagged) {
+  document.getElementById('runsResult').innerHTML =
+    `<strong>Runs test, all 10 digits:</strong> <span class="stat-mono">${flagged}/10</span> flagged as non-random at 5% significance (~0–1 expected by chance alone).`;
+}
+function renderHeatmap(matrix) {
+  const container = document.getElementById('heatmap');
+  let html = '<table class="heatmap-table"><tr><th></th>' + Array.from({length:10},(_,j)=>`<th>${j}</th>`).join('') + '</tr>';
+  for (let i = 0; i < 10; i++) {
+    html += `<tr><th>${i}</th>`;
+    for (let j = 0; j < 10; j++) {
+      const v = matrix[i][j] * 100;
+      html += `<td style="background:${heatColor(v)}">${Math.round(v)}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  container.innerHTML = html;
+}
+function renderBacktestTable(results) {
+  const tbody = document.querySelector('#backtestTable tbody');
+  tbody.innerHTML = '';
+  results.forEach(r => {
+    const flagged = r.matches.significant || r.differs.significant;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.name}</td>
+      <td>${(r.matches.accuracy*100).toFixed(2)}%<span class="p-note">p=${r.matches.p.toFixed(3)}</span></td>
+      <td>${(r.differs.accuracy*100).toFixed(2)}%<span class="p-note">p=${r.differs.p.toFixed(3)}</span></td>
+      <td class="${flagged ? 'verdict-flag' : 'verdict-ok'}">${flagged ? 'Possible edge' : 'No edge'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function renderPredictionCards(results) {
+  const container = document.getElementById('predictionCards');
+  container.innerHTML = '';
+  results.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'pred-card';
+    card.innerHTML = `
+      <div class="pred-strategy">${r.name}</div>
+      <div class="pred-digit">${r.nextDigit}</div>
+      <div class="pred-acc">matched ${(r.matches.accuracy*100).toFixed(1)}% historically</div>
+    `;
+    container.appendChild(card);
+  });
+}
+function renderAll(report, symbol, mode) {
+  renderFreqChart(report.freq);
+  renderChiResult(report.chi2, report.chiP);
+  renderRunsResult(report.runsFlagged);
+  renderHeatmap(report.matrix);
+  renderBacktestTable(report.results);
+  renderPredictionCards(report.results);
+  document.getElementById('reportMeta').textContent =
+    (mode === 'demo' ? 'Simulated data' : symbol) + ' · ' + report.n.toLocaleString() + ' digits analyzed';
+}
+
+/* ---------- wiring ---------- */
+
+let lastReport = null;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runAnalysis() {
+  const mode = document.getElementById('mode').value;
+  const symbol = document.getElementById('symbol').value;
+  const count = parseInt(document.getElementById('count').value, 10);
+  const statusEl = document.getElementById('status');
+  const runBtn = document.getElementById('runBtn');
+  const resultsEl = document.getElementById('results');
+
+  runBtn.disabled = true;
+  resultsEl.classList.remove('visible');
+  statusEl.textContent = '';
+
+  try {
+    let digits;
+    if (mode === 'demo') {
+      statusEl.textContent = `Simulating ${count.toLocaleString()} random ticks…`;
+      await sleep(150);
+      digits = simulateDigits(count);
+    } else {
+      const appId = document.getElementById('appId').value.trim() || '1089';
+      statusEl.textContent = 'Connecting to Deriv…';
+      const client = new DerivClient(appId);
+      await client.connect();
+      statusEl.textContent = 'Looking up symbol precision…';
+      const pipSize = await client.getPipSize(symbol);
+      statusEl.textContent = `Fetching ${count.toLocaleString()} ticks for ${symbol}…`;
+      const prices = await client.getTickHistory(symbol, count);
+      client.close();
+      digits = prices.map(p => lastDigit(p, pipSize));
+    }
+
+    statusEl.textContent = 'Crunching statistics…';
+    await sleep(30);
+    const report = analyzeDigits(digits);
+    renderAll(report, symbol, mode);
+    lastReport = { generated_at: new Date().toISOString(), mode, symbol: mode === 'live' ? symbol : null, ...report };
+    resultsEl.hidden = false;
+    requestAnimationFrame(() => resultsEl.classList.add('visible'));
+    statusEl.textContent = `Done — analyzed ${digits.length.toLocaleString()} digits.`;
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message + (mode === 'live' ? ' — try Demo mode, or check your connection.' : '');
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+function downloadReport() {
+  if (!lastReport) return;
+  const blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'digit-analysis-report.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('runBtn').addEventListener('click', runAnalysis);
+document.getElementById('downloadBtn').addEventListener('click', downloadReport);
+document.getElementById('mode').addEventListener('change', (e) => {
+  document.getElementById('liveFields').hidden = e.target.value !== 'live';
+});
+</script>
+</body>
+</html>
