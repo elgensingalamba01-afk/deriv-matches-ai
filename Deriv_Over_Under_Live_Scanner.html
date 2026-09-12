@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Deriv Over/Under – Live Scanner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0f1a;
+      color: #e8edf5;
+      padding: 16px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #1e2a44;
+    }
+    .logo h1 {
+      font-size: 22px;
+      background: linear-gradient(135deg, #00d4ff, #6c5ce7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo .sub {
+      font-size: 12px;
+      color: #7b8eae;
+      -webkit-text-fill-color: #7b8eae;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #141f33;
+      padding: 6px 16px 6px 12px;
+      border-radius: 30px;
+      border: 1px solid #1e2a44;
+      font-size: 13px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 1.8s infinite;
+    }
+    .dot.green { background: #00f593; box-shadow: 0 0 12px #00f59366; }
+    .dot.yellow { background: #fbbf24; box-shadow: 0 0 12px #fbbf2466; }
+    .dot.red { background: #f87171; box-shadow: 0 0 12px #f8717166; }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .stat-card {
+      background: #111d33;
+      padding: 14px 12px;
+      border-radius: 14px;
+      border: 1px solid #1a2a4a;
+      text-align: center;
+    }
+    .stat-card .num {
+      font-size: 24px;
+      font-weight: 700;
+      color: #00d4ff;
+    }
+    .stat-card .num.green { color: #00f593; }
+    .stat-card .num.gold { color: #fbbf24; }
+    .stat-card .lbl { font-size: 10px; color: #7b8eae; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 14px 0 16px;
+      align-items: center;
+    }
+    .controls select, .controls input {
+      padding: 10px 16px;
+      background: #111d33;
+      border: 1px solid #1a2a4a;
+      border-radius: 10px;
+      color: #e8edf5;
+      font-size: 14px;
+      flex: 1 1 160px;
+      min-width: 120px;
+    }
+    .controls select:focus, .controls input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px #00d4ff22;
+    }
+    .btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #1e2a44;
+      color: #e8edf5;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #00d4ff, #6c5ce7);
+      color: #fff;
+    }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 24px #6c5ce766; }
+    .btn-secondary { background: #1e2a44; color: #b0c0d0; }
+    .btn-secondary:hover { border-color: #00d4ff; color: #e8edf5; }
+
+    .table-wrapper {
+      background: #111d33;
+      border-radius: 14px;
+      border: 1px solid #1a2a4a;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .table-header {
+      padding: 12px 18px;
+      border-bottom: 1px solid #1a2a4a;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .table-header h3 { font-size: 13px; color: #7b8eae; text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-header .count { font-size: 13px; color: #7b8eae; }
+    .table-header .count span { color: #00d4ff; font-weight: 600; }
+
+    .table-scroll { overflow-x: auto; padding: 0 4px 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      color: #7b8eae;
+      font-weight: 500;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #1a2a4a;
+      position: sticky;
+      top: 0;
+      background: #111d33;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #0d1a2a;
+      vertical-align: middle;
+    }
+    tr:hover td { background: #0d1a2e; }
+    tr:last-child td { border-bottom: none; }
+
+    .symbol-name { font-weight: 600; }
+    .symbol-name .sub { color: #7b8eae; font-weight: 400; font-size: 11px; }
+
+    .score-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .score-track {
+      width: 70px;
+      height: 6px;
+      background: #0b0f1a;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .score-fill.high { background: #00f593; }
+    .score-fill.med { background: #fbbf24; }
+    .score-fill.low { background: #f87171; }
+
+    .badge {
+      padding: 2px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .badge.over { background: #00d4ff33; color: #00d4ff; }
+    .badge.under { background: #fbbf2433; color: #fbbf24; }
+    .badge.best { background: #00f59333; color: #00f593; }
+
+    .recommendation {
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .recommendation.strong { background: #00f59333; color: #00f593; }
+    .recommendation.buy { background: #00d4ff33; color: #00d4ff; }
+    .recommendation.neutral { background: #7b8eae33; color: #b0c0d0; }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 30px;
+    }
+    .loading.active { display: block; }
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #1a2a4a;
+      border-top-color: #00d4ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 720px) {
+      .header { flex-direction: column; align-items: stretch; }
+      .controls { flex-direction: column; }
+      .controls select, .controls input, .controls .btn { width: 100%; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 5px 8px; font-size: 11px; }
+      .score-track { width: 50px; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .stat-card .num { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      <h1>📊 Over/Under Live Scanner</h1>
+      <div class="sub">Real‑time public WebSocket · No API token required</div>
+    </div>
+    <div class="status-badge">
+      <span class="dot green" id="statusDot"></span>
+      <span id="statusText">LIVE · CONNECTED</span>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="num" id="totalMarkets">0</div><div class="lbl">Markets</div></div>
+    <div class="stat-card"><div class="num green" id="overCount">0</div><div class="lbl">📈 Over</div></div>
+    <div class="stat-card"><div class="num gold" id="underCount">0</div><div class="lbl">📉 Under</div></div>
+    <div class="stat-card"><div class="num" id="bestMarket">—</div><div class="lbl">🏆 Best</div></div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <select id="symbolFilter">
+      <option value="all">All Markets</option>
+      <option value="volatility">Volatility</option>
+      <option value="otc">OTC</option>
+      <option value="crash">Crash</option>
+      <option value="boom">Boom</option>
+    </select>
+    <select id="historySelect">
+      <option value="50">History 50</option>
+      <option value="100">100</option>
+      <option value="200">200</option>
+      <option value="500" selected>500</option>
+    </select>
+    <button class="btn btn-primary" onclick="scanAllMarkets()">🔍 SCAN ALL</button>
+    <button class="btn btn-secondary" onclick="toggleAutoScan()">⏸️ Auto</button>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div style="color:#7b8eae;">Connecting to Deriv public WebSocket …</div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <div class="table-header">
+      <h3>📈 Over / Under Signals</h3>
+      <div class="count">Showing <span id="resultCount">0</span> markets</div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Market</th>
+            <th>Price</th>
+            <th>Vol %</th>
+            <th>Over</th>
+            <th>Under</th>
+            <th>Best</th>
+            <th>Recommendation</th>
+            <th>Trade</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td colspan="8" style="text-align:center;padding:30px;color:#7b8eae;">
+              <div style="font-size:28px;margin-bottom:6px;">📡</div>
+              Click <strong style="color:#00d4ff;">"SCAN ALL"</strong> to fetch live market data
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ================================================================
+//  DERIV PUBLIC WEBSOCKET – NO TOKEN REQUIRED
+// ================================================================
+
+const WS_URL = 'wss://api.derivws.com/trading/v1/options/ws/public';
+
+// ---------- STATE ----------
+let ws = null;
+let isConnected = false;
+let isScanning = false;
+let autoMode = true;
+let autoTimer = null;
+
+const state = {
+  results: [],
+  symbolData: {},      // accumulates ticks per symbol
+  activeSymbols: [],   // list of { symbol, display_name, market }
+  subscribed: false
+};
+
+// ---------- DOM refs ----------
+const $ = id => document.getElementById(id);
+const statusDot = $('statusDot');
+const statusText = $('statusText');
+const tableBody = $('tableBody');
+const loading = $('loading');
+const totalMarkets = $('totalMarkets');
+const overCount = $('overCount');
+const underCount = $('underCount');
+const bestMarket = $('bestMarket');
+const resultCount = $('resultCount');
+
+// ---------- WebSocket connection ----------
+function connectWebSocket() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  statusText.textContent = 'CONNECTING…';
+  statusDot.className = 'dot yellow';
+  loading.classList.add('active');
+
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    isConnected = true;
+    statusText.textContent = 'LIVE · CONNECTED';
+    statusDot.className = 'dot green';
+    loading.classList.remove('active');
+    console.log('🔌 WebSocket connected');
+
+    // 1. Request active symbols
+    ws.send(JSON.stringify({
+      active_symbols: 1,
+      req_id: 1
+    }));
+  };
+
+  ws.onmessage = (ev) => {
+    try {
+      const data = JSON.parse(ev.data);
+      handleMessage(data);
+    } catch (e) {
+      console.warn('Parse error:', e);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err);
+    statusText.textContent = '⚠️ ERROR';
+    statusDot.className = 'dot red';
+    loading.classList.remove('active');
+  };
+
+  ws.onclose = () => {
+    isConnected = false;
+    statusText.textContent = '⚠️ DISCONNECTED';
+    statusDot.className = 'dot red';
+    console.warn('WebSocket closed – reconnecting in 3s…');
+    setTimeout(connectWebSocket, 3000);
+  };
+}
+
+// ---------- Handle incoming messages ----------
+function handleMessage(data) {
+  // Active symbols response
+  if (data.active_symbols) {
+    state.activeSymbols = data.active_symbols
+      .filter(s => s.market_display_name && s.market)
+      .map(s => ({
+        symbol: s.symbol,
+        name: s.display_name || s.symbol,
+        market: s.market,
+        market_display: s.market_display_name
+      }));
+    console.log(`📋 Received ${state.activeSymbols.length} active symbols`);
+    // After getting symbols, optionally auto‑scan
+    if (autoMode) setTimeout(() => scanAllMarkets(), 500);
+    return;
+  }
+
+  // Tick response
+  if (data.tick && data.tick.symbol) {
+    const sym = data.tick.symbol;
+    if (!state.symbolData[sym]) state.symbolData[sym] = [];
+    state.symbolData[sym].push({
+      epoch: data.tick.epoch || Date.now(),
+      quote: data.tick.quote
+    });
+    // keep only latest 1000 ticks per symbol
+    if (state.symbolData[sym].length > 1000) {
+      state.symbolData[sym] = state.symbolData[sym].slice(-500);
+    }
+    // update UI incrementally if we are in live mode
+    if (document.getElementById('symbolFilter').value !== 'all') {
+      // if a specific filter is active, we could re‑render
+    }
+    return;
+  }
+
+  // Error
+  if (data.error) {
+    console.warn('Deriv API error:', data.error);
+  }
+}
+
+// ---------- Subscribe to a symbol ----------
+function subscribeToSymbol(symbol) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({
+    ticks: symbol,
+    subscribe: 1,
+    req_id: Date.now()
+  }));
+  console.log(`📡 Subscribed to ${symbol}`);
+}
+
+// ---------- Fetch ticks for a symbol (REST fallback) ----------
+async function fetchTicksRest(symbol, count = 500) {
+  const url = `https://api.deriv.com/v3/ticks_history?symbol=${symbol}&count=${count}`;
+  try {
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.history && data.history.ticks) {
+      return data.history.ticks.map(t => ({ epoch: t.epoch, quote: t.quote }));
+    }
+    return [];
+  } catch (e) {
+    console.warn(`REST fetch failed for ${symbol}:`, e);
+    return [];
+  }
+}
+
+// ---------- Analyse ticks for Over/Under ----------
+function analyseTicks(symbol, name, market, ticks) {
+  if (!ticks || ticks.length < 20) return null;
+
+  const digits = ticks.map(t => {
+    const str = t.quote.toFixed(4).replace('.', '');
+    return parseInt(str.slice(-1));
+  });
+
+  const total = digits.length;
+  const overCount = digits.filter(d => d >= 5).length;
+  const underCount = digits.filter(d => d < 5).length;
+
+  const overScore = (overCount / total) * 100;
+  const underScore = (underCount / total) * 100;
+
+  const bestType = overScore > underScore ? 'OVER' : 'UNDER';
+  const bestScore = Math.max(overScore, underScore);
+
+  const confidence = Math.min(95, Math.round((bestScore - 50) * 2.2 + 50));
+
+  let recommendation = 'NEUTRAL';
+  if (bestScore > 64) recommendation = 'STRONG ' + bestType;
+  else if (bestScore > 56) recommendation = bestType;
+
+  return {
+    symbol,
+    name,
+    market,
+    currentPrice: ticks[ticks.length-1]?.quote || 0,
+    overScore: parseFloat(overScore.toFixed(1)),
+    underScore: parseFloat(underScore.toFixed(1)),
+    bestType,
+    bestScore: parseFloat(bestScore.toFixed(1)),
+    recommendation,
+    tradeSuggestion: `Trade ${bestType} 5 on ${symbol}`,
+    confidence,
+    lastDigit: digits[digits.length-1],
+    tickCount: total
+  };
+}
+
+// ---------- Scan all markets ----------
+async function scanAllMarkets() {
+  if (isScanning) return;
+  isScanning = true;
+
+  loading.classList.add('active');
+  statusText.textContent = 'SCANNING…';
+  statusDot.className = 'dot yellow';
+
+  // If we have active symbols, use them; otherwise fallback to known list
+  let symbols = state.activeSymbols.length > 0
+    ? state.activeSymbols
+    : getFallbackSymbols();
+
+  // Filter by selected type
+  const filter = document.getElementById('symbolFilter').value;
+  if (filter !== 'all') {
+    const map = {
+      volatility: s => s.market && s.market.includes('volatility'),
+      otc: s => s.market && s.market.includes('otc'),
+      crash: s => s.symbol && s.symbol.includes('CRASH'),
+      boom: s => s.symbol && s.symbol.includes('BOOM')
+    };
+    symbols = symbols.filter(s => map[filter] ? map[filter](s) : true);
+  }
+
+  // Limit to avoid overloading
+  const maxMarkets = 30;
+  if (symbols.length > maxMarkets) symbols = symbols.slice(0, maxMarkets);
+
+  const historyCount = parseInt(document.getElementById('historySelect').value);
+
+  const results = [];
+
+  for (const sym of symbols) {
+    // Try REST first – faster than WebSocket for bulk
+    let ticks = await fetchTicksRest(sym.symbol, historyCount);
+    if (ticks.length === 0) {
+      // fallback: use any cached WebSocket ticks
+      ticks = (state.symbolData[sym.symbol] || []).slice(-historyCount);
+    }
+    if (ticks.length < 20) continue;
+
+    const analysis = analyseTicks(sym.symbol, sym.name, sym.market_display || sym.market, ticks);
+    if (analysis) results.push(analysis);
+
+    // small delay to avoid rate limits
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  // Sort by best score
+  results.sort((a, b) => b.bestScore - a.bestScore);
+
+  state.results = results;
+
+  // Update stats
+  const overs = results.filter(r => r.bestType === 'OVER' && r.bestScore > 55).length;
+  const unders = results.filter(r => r.bestType === 'UNDER' && r.bestScore > 55).length;
+
+  totalMarkets.textContent = results.length;
+  overCount.textContent = overs;
+  underCount.textContent = unders;
+  if (results.length > 0) {
+    bestMarket.textContent = results[0].symbol;
+    bestMarket.style.color = '#00f593';
+  } else {
+    bestMarket.textContent = '—';
+    bestMarket.style.color = '#7b8eae';
+  }
+
+  renderResults(results);
+
+  statusText.textContent = `LIVE · ${results.length} markets`;
+  statusDot.className = 'dot green';
+  loading.classList.remove('active');
+  isScanning = false;
+}
+
+// ---------- Render results table ----------
+function renderResults(results) {
+  if (!results || results.length === 0) {
+    tableBody.innerHTML = `
+      <tr><td colspan="8" style="text-align:center;padding:30px;color:#7b8eae;">
+        <div style="font-size:24px;">🔍</div>
+        No data. Try "SCAN ALL" again.
+      </td></tr>
+    `;
+    resultCount.textContent = '0';
+    return;
+  }
+
+  let html = '';
+  let shown = 0;
+
+  for (const r of results) {
+    const overClass = r.overScore >= 55 ? 'high' : r.overScore >= 45 ? 'med' : 'low';
+    const underClass = r.underScore >= 55 ? 'high' : r.underScore >= 45 ? 'med' : 'low';
+    const changeSign = r.currentPrice > 0 ? '+' : '';
+
+    let recClass = 'neutral';
+    if (r.recommendation.startsWith('STRONG')) recClass = 'strong';
+    else if (r.recommendation === 'OVER' || r.recommendation === 'UNDER') recClass = 'buy';
+
+    const badge = r.bestType === 'OVER'
+      ? '<span class="badge over">OVER</span>'
+      : '<span class="badge under">UNDER</span>';
+
+    html += `
+      <tr>
+        <td>
+          <div class="symbol-name">${r.symbol} <span class="sub">${r.name}</span></div>
+          <div style="font-size:9px;color:#7b8eae;">${r.market || ''}</div>
+        </td>
+        <td>$${r.currentPrice.toFixed(4)}</td>
+        <td>—</td>
+        <td>
+          <div class="score-bar">
+            <div class="score-track"><div class="score-fill ${overClass}" style="width:${r.overScore}%"></div></div>
+            <span style="font-size:11px;font-weight:600;color:#00d4ff;">${r.overScore}%</span>
+          </div>
+        </td>
+        <td>
+          <div class="score-bar">
+            <div class="score-track"><div class="score-fill ${underClass}" style="width:${r.underScore}%"></div></div>
+            <span style="font-size:11px;font-weight:600;color:#fbbf24;">${r.underScore}%</span>
+          </div>
+        </td>
+        <td style="font-weight:700;color:${r.bestType === 'OVER' ? '#00d4ff' : '#fbbf24'};">${r.bestType}</td>
+        <td><span class="recommendation ${recClass}">${r.recommendation}</span></td>
+        <td>
+          <div style="font-size:12px;font-weight:600;color:#00d4ff;">${r.tradeSuggestion}</div>
+          <div style="font-size:9px;color:#7b8eae;">conf: ${r.confidence}%</div>
+        </td>
+      </tr>
+    `;
+    shown++;
+  }
+
+  tableBody.innerHTML = html;
+  resultCount.textContent = shown;
+}
+
+// ---------- Auto-scan toggle ----------
+function toggleAutoScan() {
+  autoMode = !autoMode;
+  const btn = document.querySelector('.btn-secondary');
+  if (autoMode) {
+    btn.textContent = '⏸️ Auto';
+    startAutoScan();
+  } else {
+    btn.textContent = '▶️ Auto';
+    stopAutoScan();
+  }
+}
+
+function startAutoScan() {
+  stopAutoScan();
+  autoTimer = setInterval(() => {
+    if (!isScanning && isConnected) scanAllMarkets();
+  }, 6000);
+}
+
+function stopAutoScan() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+}
+
+// ---------- Fallback symbols (in case active_symbols fails) ----------
+function getFallbackSymbols() {
+  return [
+    { symbol: 'R_10', name: 'Volatility 10', market: 'volatility' },
+    { symbol: 'R_25', name: 'Volatility 25', market: 'volatility' },
+    { symbol: 'R_50', name: 'Volatility 50', market: 'volatility' },
+    { symbol: 'R_75', name: 'Volatility 75', market: 'volatility' },
+    { symbol: 'R_100', name: 'Volatility 100', market: 'volatility' },
+    { symbol: '1HZ10V', name: 'Volatility 10 (1s)', market: 'volatility' },
+    { symbol: '1HZ25V', name: 'Volatility 25 (1s)', market: 'volatility' },
+    { symbol: '1HZ50V', name: 'Volatility 50 (1s)', market: 'volatility' },
+    { symbol: '1HZ75V', name: 'Volatility 75 (1s)', market: 'volatility' },
+    { symbol: '1HZ100V', name: 'Volatility 100 (1s)', market: 'volatility' },
+    { symbol: 'R_10_OTC', name: 'OTC Volatility 10', market: 'otc' },
+    { symbol: 'R_25_OTC', name: 'OTC Volatility 25', market: 'otc' },
+    { symbol: 'R_50_OTC', name: 'OTC Volatility 50', market: 'otc' },
+    { symbol: 'R_75_OTC', name: 'OTC Volatility 75', market: 'otc' },
+    { symbol: 'R_100_OTC', name: 'OTC Volatility 100', market: 'otc' },
+    { symbol: '1HZ10V_OTC', name: 'OTC Volatility 10 (1s)', market: 'otc' },
+    { symbol: '1HZ25V_OTC', name: 'OTC Volatility 25 (1s)', market: 'otc' },
+    { symbol: '1HZ50V_OTC', name: 'OTC Volatility 50 (1s)', market: 'otc' },
+    { symbol: '1HZ75V_OTC', name: 'OTC Volatility 75 (1s)', market: 'otc' },
+    { symbol: '1HZ100V_OTC', name: 'OTC Volatility 100 (1s)', market: 'otc' },
+    { symbol: 'CRASH', name: 'Crash', market: 'crash' },
+    { symbol: 'BOOM', name: 'Boom', market: 'boom' },
+  ];
+}
+
+// ---------- Init ----------
+function init() {
+  connectWebSocket();
+  // If connection takes too long, we still have fallback
+  setTimeout(() => {
+    if (!isConnected) {
+      statusText.textContent = '⚠️ FALLBACK MODE';
+      statusDot.className = 'dot yellow';
+      // Use fallback symbols and REST API
+      scanAllMarkets();
+    }
+  }, 4000);
+
+  // Start auto-scan after first connection
+  setTimeout(() => {
+    if (autoMode) startAutoScan();
+  }, 2000);
+}
+
+// Expose to global
+window.scanAllMarkets = scanAllMarkets;
+window.toggleAutoScan = toggleAutoScan;
+
+document.addEventListener('DOMContentLoaded', init);
+console.log('📊 Over/Under Live Scanner ready');
+</script>
+</body>
+</html>
